@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Quiz History</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-4">
+  <h1 class="text-3xl font-bold text-center mb-6">📘 My Quiz History</h1>
+  <div class="bg-white text-black p-4 rounded-xl max-w-4xl mx-auto shadow-xl overflow-auto">
+    <table class="w-full border text-sm">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="border p-2">Quiz</th>
+          <th class="border p-2">Score</th>
+          <th class="border p-2">Total</th>
+          <th class="border p-2">Date</th>
+          <th class="border p-2">View</th>
+        </tr>
+      </thead>
+      <tbody id="historyTable"></tbody>
+    </table>
+  </div>
+
+  <!-- Modal -->
+  <div id="answerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white text-black w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6 rounded-xl">
+      <h2 class="text-xl font-bold mb-4">📝 Quiz Answers</h2>
+      <div id="modalContent" class="space-y-4"></div>
+      <button onclick="closeModal()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded">Close</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDci6GAa0SPYWvpQa6s0ywkN4pLpcckSO0",
+      authDomain: "edutech002-e674b.firebaseapp.com",
+      projectId: "edutech002-e674b",
+      storageBucket: "edutech002-e674b.firebasestorage.app",
+      messagingSenderId: "634874984437",
+      appId: "1:634874984437:web:8e2082e99d0bfa1061d2bc"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const tbody = document.getElementById("historyTable");
+    const modal = document.getElementById("answerModal");
+    const modalContent = document.getElementById("modalContent");
+
+    function closeModal() {
+      modal.classList.add("hidden");
+      modalContent.innerHTML = "";
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return location.href = "index.html";
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref);
+      const data = snap.data();
+
+      if (!data || !data.history) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500 py-4">No quiz attempts found.</td></tr>`;
+        return;
+      }
+
+      for (const quizName in data.history) {
+        const { score, total, timestamp, questions, answers } = data.history[quizName];
+        const tr = document.createElement("tr");
+        tr.className = "border-t";
+        tr.innerHTML = `
+          <td class="border p-2">${quizName}</td>
+          <td class="border p-2">${score}</td>
+          <td class="border p-2">${total}</td>
+          <td class="border p-2">${timestamp || '—'}</td>
+          <td class="border p-2">
+            <button class="bg-blue-600 text-white px-2 py-1 rounded text-sm" onclick='showAnswers(${JSON.stringify(questions)}, ${JSON.stringify(answers)})'>View</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+    });
+
+    window.showAnswers = (questions, answers) => {
+      modal.classList.remove("hidden");
+      modalContent.innerHTML = "";
+      if (!questions || !answers) {
+        modalContent.innerHTML = "<p class='text-red-500'>No answer data stored for this quiz.</p>";
+        return;
+      }
+      questions.forEach((q, i) => {
+        const userAns = answers[i];
+        const correct = q.answer === userAns;
+        const div = document.createElement("div");
+        div.className = "border-b pb-3";
+        div.innerHTML = `
+          <p class="font-semibold">Q${i + 1}: ${q.q}</p>
+          <p>Your Answer: <span class="${correct ? 'text-green-600' : 'text-red-600'}">${userAns || "Not Answered"} ${correct ? '✅' : '❌'}</span></p>
+          <p>Correct Answer: <span class="text-green-700">${q.answer}</span></p>
+        `;
+        modalContent.appendChild(div);
+      });
+    }
+  </script>
+</body>
+</html>
