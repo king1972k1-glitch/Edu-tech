@@ -67,32 +67,36 @@
         `;
       });
     }
-
+let userAnswers = [];
     window.submitQuiz = async () => {
-      let score = 0;
-      quizData.forEach((q, i) => {
-        const selected = document.querySelector(`input[name='q${i}']:checked`);
-        if (selected && selected.value === q.answer) score++;
-      });
+  let score = 0;
+  userAnswers = [];
 
-      const xpEarned = score * 5;
-      const userRef = doc(db, "users", userUID);
-      const userSnap = await getDoc(userRef);
-      const currentXP = userSnap.data().xp || 0;
+  quizData.forEach((q, i) => {
+    const selected = document.querySelector(`input[name='q${i}']:checked`);
+    const userAns = selected ? selected.value : null;
+    userAnswers.push(userAns);
+    if (userAns === q.answer) score++;
+  });
 
-      await updateDoc(userRef, {
-        xp: currentXP + xpEarned,
-        [`history.${quizId}`]: {
-          score,
-          total: quizData.length,
-          timestamp: new Date().toISOString()
-          questions: quizData,
-    answers: userAnswers
-        }
-      });
+  const xpEarned = score * 5;
+  const userRef = doc(db, "users", userUID);
+  const userSnap = await getDoc(userRef);
+  const currentXP = userSnap.data().xp || 0;
 
-      alert(`You scored ${score}/${quizData.length} and earned ${xpEarned} XP!`);
-      location.href = "dashboard.html";
+  await updateDoc(userRef, {
+    xp: currentXP + xpEarned,
+    [`history.${quizId}`]: {
+      score,
+      total: quizData.length,
+      timestamp: new Date().toISOString(),
+      questions: quizData,
+      answers: userAnswers
     }
+  });
+
+  alert(`✅ You scored ${score}/${quizData.length} and earned ${xpEarned} XP!`);
+  location.href = "dashboard.html";
+};
   </script></body>
 </html>
