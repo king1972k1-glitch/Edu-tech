@@ -40,6 +40,7 @@
 
     let quizData = [];
     let userUID = null;
+    let userAnswers = [];
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = 'index.html';
@@ -67,7 +68,6 @@
         `;
       });
     }
-let userAnswers = [];
     window.submitQuiz = async () => {
   let score = 0;
   userAnswers = [];
