@@ -1,0 +1,65 @@
+<!-- index.html - EduTech Login Page with Firebase Google Login --><!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduTech | Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head><body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen flex items-center justify-center">
+  <div class="text-center p-6 bg-white bg-opacity-10 backdrop-blur-md rounded-xl shadow-xl max-w-md">
+    <h1 class="text-4xl font-bold mb-4 text-white">🚀 Welcome to EduTech</h1>
+    <p class="mb-6 text-white text-lg">Practice Questions, XP, Quizzes, Avatars & More</p><button id="login-btn" class="bg-white text-blue-700 px-6 py-3 rounded font-semibold hover:bg-blue-100 transition-all">
+  Sign in with Google
+</button>
+
+<p class="mt-8 text-sm opacity-80">Created by Aman Raj</p>
+
+  </div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDci6GAa0SPYWvpQa6s0ywkN4pLpcckSO0",
+      authDomain: "edutech002-e674b.firebaseapp.com",
+      projectId: "edutech002-e674b",
+      storageBucket: "edutech002-e674b.firebasestorage.app",
+      messagingSenderId: "634874984437",
+      appId: "1:634874984437:web:8e2082e99d0bfa1061d2bc",
+      measurementId: "G-9C75NQYCBF"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const provider = new GoogleAuthProvider();
+    const loginBtn = document.getElementById("login-btn");
+
+    loginBtn.addEventListener("click", async () => {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) {
+          await setDoc(userRef, {
+            name: user.displayName,
+            email: user.email,
+            xp: 0,
+            avatar: "default.png",
+            role: "student",
+            history: {}
+          });
+        }
+
+        localStorage.setItem("edu_user", JSON.stringify({ uid: user.uid, name: user.displayName }));
+        window.location.href = "dashboard.html";
+      } catch (error) {
+        alert("Login failed. Try again.");
+        console.error(error);
+      }
+    });
+  </script></body>
+</html>

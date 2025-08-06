@@ -1,0 +1,161 @@
+<!-- admin.html - EduTech Admin Panel with Quiz Edit/Delete --><!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduTech | Admin Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-blue-900 text-white min-h-screen p-6">
+  <h1 class="text-3xl font-bold mb-6 text-center">🛠️ Admin Panel</h1>  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Users List -->
+    <div class="bg-white text-black p-4 rounded-xl shadow-xl">
+      <h2 class="text-xl font-semibold mb-2">👥 All Users</h2>
+      <input id="search-user" type="text" placeholder="Search user..." class="p-2 border rounded w-full mb-2">
+      <ul id="user-list" class="space-y-2 max-h-96 overflow-y-auto"></ul>
+    </div><!-- Broadcast Message -->
+<div class="bg-white text-black p-4 rounded-xl shadow-xl">
+  <h2 class="text-xl font-semibold mb-2">📢 Broadcast Message</h2>
+  <textarea id="broadcast-msg" class="w-full p-2 border rounded mb-2" rows="4" placeholder="Enter your message to all users..."></textarea>
+  <button onclick="sendBroadcast()" class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800">Send</button>
+</div>
+<a href="user-scores.html" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100">📖 View Quiz History</a>
+     
+
+
+<!-- Manual XP -->
+<div class="bg-w p-4 rounded-xl shadow-xl">
+  <h2 class="text-xl font-semibold mb-2">🏅 Award/Remove XP</h2>
+  <input id="xp-user-id" class="w-full p-2 rounded border mb-2" placeholder="User UID">
+  <input id="xp-amount" class="w-full p-2 rounded border mb-2" placeholder="XP (+/-)">
+  <button onclick="updateXP()" class="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800">Update XP</button>
+</div>
+
+<!-- Reset Leaderboard -->
+<div class="bg-white text-black p-4 rounded-xl shadow-xl">
+  <h2 class="text-xl font-semibold mb-2">🔄 Reset Leaderboard</h2>
+  <button onclick="resetLeaderboard()" class="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800">Reset All XP</button>
+</div>
+
+  </div>  <div class="max-w-5xl mx-auto mt-10 bg-white text-black p-4 rounded-xl shadow-xl">
+    <h2 class="text-xl font-semibold mb-4">📝 Edit/Delete Quiz Questions</h2>
+    <input id="quiz-id" class="w-full p-2 rounded border mb-2" placeholder="Enter Quiz ID (e.g. Science_Chapter1_Quiz1)" />
+    <button onclick="loadQuiz()" class="bg-yellow-600 text-white px-4 py-2 rounded mb-4 hover:bg-yellow-700">Load Quiz</button><textarea id="quiz-data" class="w-full p-2 rounded border h-60 mb-4" placeholder='Quiz data will appear here after loading...'></textarea>
+<div class="flex gap-4">
+  <button onclick="updateQuiz()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Save Changes</button>
+  <button onclick="deleteQuiz()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Delete Quiz</button>
+</div>
+
+  </div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, updateDoc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDci6GAa0SPYWvpQa6s0ywkN4pLpcckSO0",
+      authDomain: "edutech002-e674b.firebaseapp.com",
+      projectId: "edutech002-e674b",
+      storageBucket: "edutech002-e674b.firebasestorage.app",
+      messagingSenderId: "634874984437",
+      appId: "1:634874984437:web:8e2082e99d0bfa1061d2bc"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const userList = document.getElementById("user-list");
+    const searchUser = document.getElementById("search-user");
+
+    async function loadUsers() {
+      const users = await getDocs(collection(db, "users"));
+      userList.innerHTML = "";
+      users.forEach(doc => {
+        const data = doc.data();
+        const li = document.createElement("li");
+        li.className = "p-2 bg-gray-100 rounded flex justify-between items-center";
+        li.innerHTML = `
+          <span><b>${data.name || "No Name"}</b> (${data.role || "student"}) — XP: ${data.xp || 0}</span>
+          <button class='bg-red-500 px-2 py-1 text-sm rounded text-white' onclick="blockUser('${doc.id}')">Block</button>
+        `;
+        userList.appendChild(li);
+      });
+    }
+
+    searchUser.addEventListener("input", () => {
+      const search = searchUser.value.toLowerCase();
+      const items = userList.querySelectorAll("li");
+      items.forEach(li => {
+        li.style.display = li.textContent.toLowerCase().includes(search) ? "block" : "none";
+      });
+    });
+
+    window.blockUser = async (uid) => {
+      await updateDoc(doc(db, "users", uid), { role: "blocked" });
+      alert("User blocked!");
+      loadUsers();
+    }
+
+    window.sendBroadcast = async () => {
+      const msg = document.getElementById("broadcast-msg").value;
+      if (!msg) return alert("Message empty");
+      await setDoc(doc(db, "announcements", new Date().toISOString()), {
+        msg,
+        createdAt: new Date().toISOString()
+      });
+      alert("Message sent to all users");
+    }
+
+    window.updateXP = async () => {
+      const uid = document.getElementById("xp-user-id").value;
+      const amount = parseInt(document.getElementById("xp-amount").value);
+      if (!uid || isNaN(amount)) return alert("Invalid data");
+      const ref = doc(db, "users", uid);
+      const snap = await getDoc(ref);
+      const currentXP = snap.data()?.xp || 0;
+      await updateDoc(ref, { xp: currentXP + amount });
+      alert("XP updated");
+    }
+
+    window.resetLeaderboard = async () => {
+      if (!confirm("Are you sure? This will reset ALL users' XP.")) return;
+      const users = await getDocs(collection(db, "users"));
+      users.forEach(async user => {
+        await updateDoc(doc(db, "users", user.id), { xp: 0 });
+      });
+      alert("Leaderboard reset done.");
+      loadUsers();
+    }
+
+    window.loadQuiz = async () => {
+      const quizId = document.getElementById("quiz-id").value.trim();
+      if (!quizId) return alert("Enter quiz ID.");
+      const ref = doc(db, "questions", quizId);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return alert("Quiz not found.");
+      document.getElementById("quiz-data").value = JSON.stringify(snap.data().questions, null, 2);
+    }
+
+    window.updateQuiz = async () => {
+      const quizId = document.getElementById("quiz-id").value.trim();
+      let updated;
+      try {
+        updated = JSON.parse(document.getElementById("quiz-data").value);
+        if (!Array.isArray(updated)) throw new Error();
+      } catch {
+        return alert("Invalid JSON format");
+      }
+      await updateDoc(doc(db, "questions", quizId), { questions: updated });
+      alert("Quiz updated successfully.");
+    }
+
+    window.deleteQuiz = async () => {
+      const quizId = document.getElementById("quiz-id").value.trim();
+      if (!quizId) return alert("Enter quiz ID");
+      if (!confirm("Delete this quiz permanently?")) return;
+      await deleteDoc(doc(db, "questions", quizId));
+      alert("Quiz deleted");
+      document.getElementById("quiz-id").value = "";
+      document.getElementById("quiz-data").value = "";
+    }
+
+    loadUsers();
+  </script></body>
+</html>

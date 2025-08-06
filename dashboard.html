@@ -1,0 +1,118 @@
+<!-- dashboard.html - EduTech Student Dashboard --><!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduTech | Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen">
+  <!-- Top Bar -->
+  <div class="flex justify-between items-center px-6 py-4">
+    <div class="flex items-center gap-4">
+      <img id="avatar" src="/avatars/default.png" class="w-12 h-12 rounded-full border-2 border-white cursor-pointer" onclick="toggleProfile()"/>
+      <div>
+        <h2 id="username" class="text-xl font-semibold">Welcome, User</h2>
+        <p class="text-sm">XP: <span id="user-xp">0</span></p>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <button onclick="logout()" class="bg-white text-blue-700 px-3 py-1 rounded">Logout</button>
+      <button onclick="toggleNotifications()" class="relative">
+        🔔
+        <span id="notif-count" class="absolute -top-2 -right-2 text-xs bg-red-600 px-1 rounded-full">0</span>
+      </button>
+    </div>
+  </div>  <!-- Notifications -->  <div id="notifications" class="hidden bg-white text-black rounded shadow mx-6 p-4 mb-4">
+    <h3 class="font-bold text-lg mb-2">📢 Announcements</h3>
+    <div id="notif-list" class="space-y-2 text-sm"></div>
+  </div>  <!-- Subject Grid -->  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 px-6">
+    <div onclick="openSubject('Science')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
+      🔬 <h3 class="mt-2 font-semibold">Science</h3>
+    </div>
+    <div onclick="openSubject('Math')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
+      ➕ <h3 class="mt-2 font-semibold">Math</h3>
+    </div>
+    <div onclick="openSubject('English')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
+      📘 <h3 class="mt-2 font-semibold">English</h3>
+    </div>
+    <div onclick="openSubject('S.St')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
+      🌍 <h3 class="mt-2 font-semibold">S.St</h3>
+    </div>
+      <a href="leaderboard.html" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100">🏆 Leaderboard</a>
+
+
+  </div>  <!-- Profile Popup -->  <div id="profile-popup" class="hidden absolute top-20 left-6 bg-white text-black p-4 rounded shadow w-64">
+    <h3 class="font-bold mb-2">👤 Profile</h3>
+    <p><b>Name:</b> <span id="popup-name">User</span></p>
+    <p><b>XP:</b> <span id="popup-xp">0</span></p>
+    <p><b>Level:</b> <span id="popup-level">1</span></p>
+    <p><b>Role:</b> <span id="popup-role">student</span></p>
+    <button onclick="window.location.href='profile.html'" class="mt-3 bg-blue-700 text-white px-3 py-1 rounded">Edit Profile</button>
+  </div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDci6GAa0SPYWvpQa6s0ywkN4pLpcckSO0",
+      authDomain: "edutech002-e674b.firebaseapp.com",
+      projectId: "edutech002-e674b",
+      storageBucket: "edutech002-e674b.firebasestorage.app",
+      messagingSenderId: "634874984437",
+      appId: "1:634874984437:web:8e2082e99d0bfa1061d2bc"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const db = getFirestore(app);
+
+    let userData;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return window.location.href = 'index.html';
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if (!snap.exists()) return alert("User not found");
+      userData = snap.data();
+
+      document.getElementById("username").textContent = `Welcome, ${userData.name}`;
+      document.getElementById("user-xp").textContent = userData.xp;
+      document.getElementById("popup-name").textContent = userData.name;
+      document.getElementById("popup-xp").textContent = userData.xp;
+      document.getElementById("popup-role").textContent = userData.role;
+      document.getElementById("popup-level").textContent = Math.floor(userData.xp / 100) + 1;
+      document.getElementById("avatar").src = `/avatars/${userData.avatar || 'default.png'}`;
+
+      loadNotifications();
+    });
+
+    window.logout = async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
+    }
+
+    window.toggleProfile = () => {
+      document.getElementById("profile-popup").classList.toggle("hidden");
+    }
+
+    window.toggleNotifications = () => {
+      document.getElementById("notifications").classList.toggle("hidden");
+    }
+
+    async function loadNotifications() {
+      const notifSnap = await getDocs(collection(db, "broadcast"));
+      const notifList = document.getElementById("notif-list");
+      const count = notifSnap.docs.length;
+      document.getElementById("notif-count").textContent = count;
+
+      notifList.innerHTML = "";
+      notifSnap.forEach(doc => {
+        notifList.innerHTML += `<div class='p-2 bg-gray-100 rounded'>${doc.data().msg}</div>`;
+      });
+    }
+
+    window.openSubject = (subject) => {
+      localStorage.setItem("selected_subject", subject);
+      window.location.href = "quizzes.html";
+    }
+  </script></body>
+</html>

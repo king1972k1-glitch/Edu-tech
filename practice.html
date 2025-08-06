@@ -1,0 +1,96 @@
+<!-- practice.html - Quiz player page for EduTech --><!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduTech | Practice Quiz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen p-6">
+  <div class="max-w-3xl mx-auto bg-white text-black p-6 rounded-xl shadow-xl">
+    <h1 class="text-2xl font-bold mb-4" id="quiz-title">Loading...</h1><div id="quiz-container" class="space-y-6"></div>
+
+<button id="submit-btn" onclick="submitQuiz()" class="mt-4 bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800">
+  Submit Quiz
+</button>
+
+  </div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDci6GAa0SPYWvpQa6s0ywkN4pLpcckSO0",
+      authDomain: "edutech002-e674b.firebaseapp.com",
+      projectId: "edutech002-e674b",
+      storageBucket: "edutech002-e674b.firebasestorage.app",
+      messagingSenderId: "634874984437",
+      appId: "1:634874984437:web:8e2082e99d0bfa1061d2bc"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth();
+
+    let quizId = localStorage.getItem("quiz_id");
+    if (!quizId) location.href = "dashboard.html";
+    document.getElementById("quiz-title").textContent = quizId.replace(/_/g, ' ');
+
+    const container = document.getElementById("quiz-container");
+    const submitBtn = document.getElementById("submit-btn");
+
+    let quizData = [];
+    let userUID = null;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return location.href = 'index.html';
+      userUID = user.uid;
+      const docSnap = await getDoc(doc(db, "questions", quizId));
+      if (!docSnap.exists()) return alert("Quiz not found");
+      quizData = docSnap.data().questions;
+      renderQuiz();
+    });
+
+    function renderQuiz() {
+      container.innerHTML = "";
+      quizData.forEach((q, i) => {
+        const options = q.options.map(opt => `
+          <label class='block'>
+            <input type='radio' name='q${i}' value='${opt}' class='mr-2'> ${opt}
+          </label>
+        `).join('');
+
+        container.innerHTML += `
+          <div class='bg-gray-100 p-4 rounded'>
+            <h3 class='font-semibold mb-2'>${i + 1}. ${q.q}</h3>
+            ${options}
+          </div>
+        `;
+      });
+    }
+
+    window.submitQuiz = async () => {
+      let score = 0;
+      quizData.forEach((q, i) => {
+        const selected = document.querySelector(`input[name='q${i}']:checked`);
+        if (selected && selected.value === q.answer) score++;
+      });
+
+      const xpEarned = score * 5;
+      const userRef = doc(db, "users", userUID);
+      const userSnap = await getDoc(userRef);
+      const currentXP = userSnap.data().xp || 0;
+
+      await updateDoc(userRef, {
+        xp: currentXP + xpEarned,
+        [`history.${quizId}`]: {
+          score,
+          total: quizData.length,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      alert(`You scored ${score}/${quizData.length} and earned ${xpEarned} XP!`);
+      location.href = "dashboard.html";
+    }
+  </script></body>
+</html>

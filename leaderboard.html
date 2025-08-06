@@ -1,0 +1,110 @@
+<!-- leaderboard.html - EduTech XP Leaderboard with Time Filters --><!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduTech | Leaderboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen p-6">
+  <h1 class="text-3xl font-bold mb-6 text-center">🏆 Leaderboard</h1>  <!-- Time Filter -->  <div class="max-w-4xl mx-auto flex justify-center mb-4">
+    <select id="time-filter" class="text-black p-2 rounded">
+      <option value="all">All Time</option>
+      <option value="week">This Week</option>
+      <option value="month">This Month</option>
+    </select>
+  </div>  <div class="max-w-4xl mx-auto bg-white text-black rounded-xl shadow-xl overflow-hidden">
+    <table class="w-full table-auto">
+      <thead class="bg-blue-800 text-white">
+        <tr>
+          <th class="p-3 text-left">#</th>
+          <th class="p-3 text-left">Avatar</th>
+          <th class="p-3 text-left">Name</th>
+          <th class="p-3 text-left">XP</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboard-body" class="bg-white text-black">
+        <tr><td colspan="4" class="text-center p-4">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDci6GAa0SPYWvpQa6s0ywkN4pLpcckSO0",
+      authDomain: "edutech002-e674b.firebaseapp.com",
+      projectId: "edutech002-e674b",
+      storageBucket: "edutech002-e674b.firebasestorage.app",
+      messagingSenderId: "634874984437",
+      appId: "1:634874984437:web:8e2082e99d0bfa1061d2bc"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const leaderboardBody = document.getElementById("leaderboard-body");
+    const filter = document.getElementById("time-filter");
+
+    filter.addEventListener("change", loadLeaderboard);
+
+    async function loadLeaderboard() {
+      leaderboardBody.innerHTML = `<tr><td colspan='4' class='text-center p-4'>Loading...</td></tr>`;
+      const usersSnap = await getDocs(collection(db, "users"));
+      const users = [];
+      const now = new Date();
+      const selected = filter.value;
+
+      usersSnap.forEach(doc => {
+        const data = doc.data();
+        let xp = 0;
+
+        if (selected === "all") {
+          xp = data.xp || 0;
+        } else if (data.history) {
+          for (let q in data.history) {
+            const entry = data.history[q];
+            const timestamp = new Date(entry.timestamp);
+
+            if (selected === "week") {
+              const lastWeek = new Date();
+              lastWeek.setDate(now.getDate() - 7);
+              if (timestamp >= lastWeek) xp += entry.score * 5;
+            }
+            if (selected === "month") {
+              const lastMonth = new Date();
+              lastMonth.setDate(now.getDate() - 30);
+              if (timestamp >= lastMonth) xp += entry.score * 5;
+            }
+          }
+        }
+
+        users.push({
+          name: data.name,
+          avatar: data.avatar || "default.png",
+          xp
+        });
+      });
+
+      users.sort((a, b) => b.xp - a.xp);
+      leaderboardBody.innerHTML = "";
+
+      users.forEach((user, index) => {
+        leaderboardBody.innerHTML += `
+          <tr class="border-t">
+            <td class="p-3">${index + 1}</td>
+            <td class="p-3">
+              <img src="/avatars/${user.avatar}" class="w-10 h-10 rounded-full border" />
+            </td>
+            <td class="p-3 font-semibold">${user.name}</td>
+            <td class="p-3">${user.xp}</td>
+          </tr>
+        `;
+      });
+
+      if (users.length === 0) {
+        leaderboardBody.innerHTML = `<tr><td colspan='4' class='text-center p-4'>No data found.</td></tr>`;
+      }
+    }
+
+    loadLeaderboard();
+  </script></body>
+</html>

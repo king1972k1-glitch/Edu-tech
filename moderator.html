@@ -1,0 +1,111 @@
+<!-- moderator.html - EduTech Moderator Panel for Adding Questions with Fix --><!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduTech | Moderator Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-blue-900 text-white min-h-screen p-6">
+  <div class="max-w-3xl mx-auto bg-white text-black p-6 rounded-xl shadow-xl">
+    <h1 class="text-2xl font-bold mb-4 text-center">🧰 Moderator Panel - Add Questions</h1><div class="mb-4">
+  <label class="block font-semibold">Subject:</label>
+  <input type="text" id="subject" class="w-full p-2 border rounded" placeholder="e.g. Science" />
+</div>
+
+<div class="mb-4">
+  <label class="block font-semibold">Chapter:</label>
+  <input type="text" id="chapter" class="w-full p-2 border rounded" placeholder="e.g. Chapter1" />
+</div>
+
+<div class="mb-4">
+  <label class="block font-semibold">Quiz Number:</label>
+  <input type="text" id="quizNum" class="w-full p-2 border rounded" placeholder="e.g. Quiz1" />
+</div>
+
+<div class="mb-4">
+  <label class="block font-semibold">Paste Questions JSON:</label>
+  <textarea id="question-json" class="w-full p-2 border rounded h-40" placeholder='[
+
+{"q": "What is 2+2?", "options": ["3", "4", "5", "6"], "answer": "4"}, {"q": "Water boils at?", "options": ["50C", "100C", "150C", "200C"], "answer": "100C"} ]'></textarea> </div>
+
+<div class="flex items-center gap-4 mb-4">
+  <input type="checkbox" id="appendMode" class="w-4 h-4">
+  <label for="appendMode">Append to existing quiz</label>
+</div>
+
+<button onclick="uploadQuestions()" class="w-full bg-blue-700 text-white py-2 rounded hover:bg-blue-800">
+  Upload Questions
+</button>
+
+  </div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDci6GAa0SPYWvpQa6s0ywkN4pLpcckSO0",
+      authDomain: "edutech002-e674b.firebaseapp.com",
+      projectId: "edutech002-e674b",
+      storageBucket: "edutech002-e674b.firebasestorage.app",
+      messagingSenderId: "634874984437",
+      appId: "1:634874984437:web:8e2082e99d0bfa1061d2bc"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) return location.href = "index.html";
+      const uid = user.uid;
+      const res = await fetch(`https://firestore.googleapis.com/v1/projects/edutech002-e674b/databases/(default)/documents/users/${uid}`);
+      const userData = await res.json();
+      const role = userData.fields?.role?.stringValue;
+      if (role !== "moderator" && role !== "admin") {
+        alert("Access denied. Moderator only.");
+        location.href = "dashboard.html";
+      }
+    });
+
+    window.uploadQuestions = async () => {
+      const subject = document.getElementById("subject").value.trim();
+      const chapter = document.getElementById("chapter").value.trim();
+      const quizNum = document.getElementById("quizNum").value.trim();
+      const rawJson = document.getElementById("question-json").value.trim();
+      const append = document.getElementById("appendMode").checked;
+
+      if (!subject || !chapter || !quizNum || !rawJson) return alert("Please fill all fields.");
+
+      let parsed;
+      try {
+        parsed = JSON.parse(rawJson);
+        if (!Array.isArray(parsed)) throw new Error();
+      } catch {
+        return alert("Invalid JSON format.");
+      }
+
+      const quizId = `${subject}_${chapter}_${quizNum}`;
+      const ref = doc(db, "questions", quizId);
+
+      if (append) {
+        const snap = await getDoc(ref);
+        const old = snap.exists() && Array.isArray(snap.data()?.questions) ? snap.data().questions : [];
+        const updated = [...old, ...parsed];
+        await setDoc(ref, {
+          questions: updated,
+          createdAt: new Date().toISOString(),
+          approved: false
+        });
+      } else {
+        await setDoc(ref, {
+          questions: parsed,
+          createdAt: new Date().toISOString(),
+          approved: false
+        });
+      }
+
+      alert("Questions uploaded successfully.");
+      document.getElementById("question-json").value = "";
+    };
+  </script></body>
+</html>

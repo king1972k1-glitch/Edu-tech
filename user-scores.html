@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>User Scores | Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-4">
+  <h1 class="text-3xl font-bold text-center mb-6">📊 User Quiz Scores</h1>
+  <div class="bg-white text-black p-4 rounded-xl max-w-6xl mx-auto shadow-xl overflow-auto">
+    <table class="w-full border text-sm">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="border p-2">UID</th>
+          <th class="border p-2">Name</th>
+          <th class="border p-2">XP</th>
+          <th class="border p-2">Role</th>
+          <th class="border p-2">Quizzes</th>
+          <th class="border p-2">Total Score</th>
+        </tr>
+      </thead>
+      <tbody id="userScores"></tbody>
+    </table>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDci6GAa0SPYWvpQa6s0ywkN4pLpcckSO0",
+      authDomain: "edutech002-e674b.firebaseapp.com",
+      projectId: "edutech002-e674b",
+      storageBucket: "edutech002-e674b.firebasestorage.app",
+      messagingSenderId: "634874984437",
+      appId: "1:634874984437:web:8e2082e99d0bfa1061d2bc"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const tbody = document.getElementById("userScores");
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return location.href = "index.html";
+
+      const userSnap = await getDoc(doc(db, "users", user.uid));
+      const currentUser = userSnap.data();
+
+      if (!currentUser || currentUser.role !== "admin") {
+        alert("Access denied. Admins only.");
+        return location.href = "dashboard.html";
+      }
+
+      const allUsersSnap = await getDocs(collection(db, "users"));
+      const allResultsSnap = await getDocs(collection(db, "quizResults"));
+
+      const scoreMap = {};
+
+      // Group quiz scores by uid
+      allResultsSnap.forEach(doc => {
+        const d = doc.data();
+        if (!scoreMap[d.uid]) scoreMap[d.uid] = { totalScore: 0, count: 0 };
+        scoreMap[d.uid].totalScore += d.score;
+        scoreMap[d.uid].count += 1;
+      });
+
+      // Display table
+      allUsersSnap.forEach(doc => {
+        const u = doc.data();
+        const uid = doc.id;
+        const userScore = scoreMap[uid] || { totalScore: 0, count: 0 };
+        const tr = document.createElement("tr");
+        tr.className = "border-t";
+        tr.innerHTML = `
+          <td class="border p-2">${uid}</td>
+          <td class="border p-2">${u.name || "No Name"}</td>
+          <td class="border p-2">${u.xp || 0}</td>
+          <td class="border p-2">${u.role || "student"}</td>
+          <td class="border p-2">${userScore.count}</td>
+          <td class="border p-2">${userScore.totalScore}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+  </script>
+</body>
+</html>

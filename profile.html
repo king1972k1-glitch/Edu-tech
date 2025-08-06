@@ -1,0 +1,86 @@
+<!-- profile.html - EduTech User Profile Page --><!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduTech | Profile</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen p-6">
+  <div class="max-w-xl mx-auto bg-white text-black p-6 rounded-xl shadow-xl">
+    <h1 class="text-3xl font-bold mb-6 text-center">👤 Edit Profile</h1><div class="flex flex-col items-center">
+  <img id="avatar-preview" src="/avatars/default.png" class="w-24 h-24 rounded-full border mb-4">
+  <select id="avatar-select" class="mb-6 p-2 rounded">
+    <option value="default.png">Default</option>
+    <option value="avatar1.png">Avatar 1</option>
+    <option value="avatar2.png">Avatar 2</option>
+    <option value="avatar3.png">Avatar 3</option>
+  </select>
+
+  <input id="name-input" class="w-full p-2 rounded border mb-4" type="text" placeholder="Enter your name">
+  <button onclick="saveProfile()" class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800">Save Changes</button>
+</div>
+
+<hr class="my-6">
+
+<div class="text-center">
+  <h2 class="text-xl font-semibold">🏅 Your Stats</h2>
+  <p><b>XP:</b> <span id="xp-count">0</span></p>
+  <p><b>Level:</b> <span id="level">1</span></p>
+  <p><b>Role:</b> <span id="role">student</span></p>
+</div>
+
+  </div>  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDci6GAa0SPYWvpQa6s0ywkN4pLpcckSO0",
+      authDomain: "edutech002-e674b.firebaseapp.com",
+      projectId: "edutech002-e674b",
+      storageBucket: "edutech002-e674b.firebasestorage.app",
+      messagingSenderId: "634874984437",
+      appId: "1:634874984437:web:8e2082e99d0bfa1061d2bc"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const avatarPreview = document.getElementById("avatar-preview");
+    const avatarSelect = document.getElementById("avatar-select");
+    const nameInput = document.getElementById("name-input");
+    const xpCount = document.getElementById("xp-count");
+    const level = document.getElementById("level");
+    const role = document.getElementById("role");
+
+    let userId = null;
+
+    avatarSelect.addEventListener("change", () => {
+      avatarPreview.src = `/avatars/${avatarSelect.value}`;
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return location.href = "index.html";
+      userId = user.uid;
+      const snap = await getDoc(doc(db, "users", userId));
+      const data = snap.data();
+
+      avatarPreview.src = `/avatars/${data.avatar || "default.png"}`;
+      avatarSelect.value = data.avatar || "default.png";
+      nameInput.value = data.name || "";
+      xpCount.textContent = data.xp || 0;
+      level.textContent = Math.floor((data.xp || 0) / 100) + 1;
+      role.textContent = data.role || "student";
+    });
+
+    window.saveProfile = async () => {
+      const name = nameInput.value.trim();
+      const avatar = avatarSelect.value;
+
+      if (!name) return alert("Name cannot be empty");
+      await updateDoc(doc(db, "users", userId), { name, avatar });
+      alert("Profile updated!");
+    }
+  </script></body>
+</html>
