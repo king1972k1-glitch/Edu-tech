@@ -70,13 +70,13 @@
     }
     window.submitQuiz = async () => {
   let score = 0;
-  userAnswers = [];
+  const userAnswers = [];
 
   quizData.forEach((q, i) => {
     const selected = document.querySelector(`input[name='q${i}']:checked`);
-    const userAns = selected ? selected.value : null;
-    userAnswers.push(userAns);
-    if (userAns === q.answer) score++;
+    const answer = selected ? selected.value : null;
+    userAnswers.push(answer);
+    if (answer === q.answer) score++;
   });
 
   const xpEarned = score * 5;
@@ -95,7 +95,7 @@
     }
   });
 
-  alert(`✅ You scored ${score}/${quizData.length} and earned ${xpEarned} XP!`);
+  alert(`You scored ${score}/${quizData.length} and earned ${xpEarned} XP!`);
   location.href = "dashboard.html";
 };
   </script></body>
