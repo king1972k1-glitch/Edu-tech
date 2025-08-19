@@ -102,7 +102,7 @@
     }
 
     async function loadNotifications() {
-  const notifSnap = await getDocs(collection(db, "announcements"));
+  const notifSnap = await getDocs(collection(db, "broadcast"));
   const notifList = document.getElementById("notif-container");
   notifList.innerHTML = "";
 
