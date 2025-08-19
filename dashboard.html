@@ -7,6 +7,7 @@
 </head>
 <body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen">
   <!-- Top Bar -->
+  <div id="notif-container"></div>
   <div class="flex justify-between items-center px-6 py-4">
     <div class="flex items-center gap-4">
       <img id="avatar" src="/avatar/default.png" class="w-12 h-12 rounded-full border-2 border-white cursor-pointer" onclick="toggleProfile()"/>
@@ -101,20 +102,34 @@
     }
 
     async function loadNotifications() {
-      const notifSnap = await getDocs(collection(db, "broadcast"));
-      const notifList = document.getElementById("notif-list");
-      const count = notifSnap.docs.length;
-      document.getElementById("notif-count").textContent = count;
+  const notifSnap = await getDocs(collection(db, "announcements"));
+  const notifList = document.getElementById("notif-container");
+  notifList.innerHTML = "";
 
-      notifList.innerHTML = "";
-      notifSnap.forEach(doc => {
-        notifList.innerHTML += `<div class='p-2 bg-gray-100 rounded'>${doc.data().msg}</div>`;
-      });
-    }
+  // Load user readNotifs
+  const userRef = doc(db, "users", userUID); // replace userUID accordingly
+  const userSnap = await getDoc(userRef);
+  const userData = userSnap.data() || {};
+  const readMap = userData.readNotifs || {};
 
-    window.openSubject = (subject) => {
-      localStorage.setItem("selected_subject", subject);
-      window.location.href = "quizzes.html";
+  notifSnap.forEach(doc => {
+    if (readMap[doc.id]) {
+      return; // skip this message
     }
+    const msg = doc.data().msg;
+    notifList.innerHTML += `
+      <div class="bg-yellow-300 p-3 rounded flex justify-between mb-2">
+        <span>${msg}</span>
+        <button onclick="dismissNotif('${doc.id}')" class="text-black font-bold">×</button>
+      </div>
+    `;
+  });
+}
+    window.dismissNotif = async (id) => {
+  await updateDoc(doc(db, "users", userUID), {
+    [`readNotifs.${id}`]: true
+  });
+  loadNotifications(); // hide on UI also
+      }
   </script></body>
 </html>
