@@ -168,7 +168,7 @@
     const list = document.getElementById("announcementList");
     list.innerHTML = "";  
 
-    db.collection("announcements").get().then((querySnapshot) => {
+    db.collection("broadcast").get().then((querySnapshot) => {
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             const li = document.createElement("li");
