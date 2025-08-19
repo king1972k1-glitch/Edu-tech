@@ -82,7 +82,7 @@
       document.getElementById("popup-xp").textContent = userData.xp;
       document.getElementById("popup-role").textContent = userData.role;
       document.getElementById("popup-level").textContent = Math.floor(userData.xp / 100) + 1;
-      document.getElementById("avatar").src = `/avatars/${userData.avatar || 'default.png'}`;
+      document.getElementById("avatar").src = `/avatar/${userData.avatar || 'default.png'}`;
 
       loadNotifications();
     });
