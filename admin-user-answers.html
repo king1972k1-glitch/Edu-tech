@@ -1,31 +1,42 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin | User Scores</title>
+  <title>Admin - User Submitted Answers</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 text-black p-6">
-  <h1 class="text-3xl font-bold mb-6 text-center">📊 User Quiz Summary</h1>
-  <div class="overflow-x-auto">
-    <table class="min-w-full bg-white border rounded shadow">
-      <thead class="bg-blue-800 text-white">
+<body class="bg-gray-900 text-white min-h-screen p-4">
+  <h1 class="text-3xl font-bold text-center mb-6">🧾 All User Quiz Submissions</h1>
+  <div class="bg-white text-black p-4 rounded-xl max-w-6xl mx-auto shadow-xl overflow-auto">
+    <table class="w-full border text-sm">
+      <thead class="bg-gray-200">
         <tr>
-          <th class="border p-2">User ID</th>
+          <th class="border p-2">UID</th>
           <th class="border p-2">Name</th>
-          <th class="border p-2">XP</th>
-          <th class="border p-2">Role</th>
-          <th class="border p-2">Quiz Attempts</th>
-          <th class="border p-2">Total Score</th>
+          <th class="border p-2">Quiz</th>
+          <th class="border p-2">Score</th>
+          <th class="border p-2">Date</th>
           <th class="border p-2">View</th>
         </tr>
       </thead>
-      <tbody id="userTableBody"></tbody>
+      <tbody id="userAnswersTable"></tbody>
     </table>
-  </div>  <script type="module">
+  </div>
+
+  <!-- Modal for Viewing Answers -->
+  <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white text-black max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 rounded-xl">
+      <h2 class="text-xl font-bold mb-4">📋 Submitted Answers</h2>
+      <div id="modalContent" class="space-y-4"></div>
+      <button onclick="closeModal()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded">Close</button>
+    </div>
+  </div>
+
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDci6GAa0SPYWvpQa6s0ywkN4pLpcckSO0",
@@ -38,54 +49,75 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const auth = getAuth();
+    const auth = getAuth(app);
+
+    const tbody = document.getElementById("userAnswersTable");
+    const modal = document.getElementById("modal");
+    const modalContent = document.getElementById("modalContent");
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
 
-      const snap = await getDoc(doc(db, "users", user.uid));
-      const data = snap.data();
-
-      if (!data || data.role !== "admin") {
-        alert("Access denied. Admins only.");
-        location.href = "dashboard.html";
-      } else {
-        loadUsers();
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref);
+      const currentUser = snap.data();
+      if (!currentUser || currentUser.role !== "admin") {
+        alert("Access denied.");
+        return location.href = "dashboard.html";
       }
+
+      const usersSnap = await getDocs(collection(db, "users"));
+      usersSnap.forEach(docSnap => {
+        const u = docSnap.data();
+        const uid = docSnap.id;
+        const name = u.name || "No Name";
+
+        if (u.history) {
+          for (const quizId in u.history) {
+            const h = u.history[quizId];
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td class="border p-2">${uid}</td>
+              <td class="border p-2">${name}</td>
+              <td class="border p-2">${quizId}</td>
+              <td class="border p-2">${h.score} / ${h.total}</td>
+              <td class="border p-2">${h.timestamp || '—'}</td>
+              <td class="border p-2">
+                <button class="bg-blue-600 text-white px-2 py-1 rounded text-sm" onclick='viewAnswers(${JSON.stringify(h.questions)}, ${JSON.stringify(h.answers)})'>View</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          }
+        }
+      });
     });
 
-    async function loadUsers() {
-      const usersSnap = await getDocs(collection(db, "users"));
-      const tbody = document.getElementById("userTableBody");
+    window.viewAnswers = (questions, answers) => {
+      modal.classList.remove("hidden");
+      modalContent.innerHTML = "";
 
-      usersSnap.forEach(docSnap => {
-        const user = docSnap.data();
-        const uid = docSnap.id;
-        const name = user.name || "Unknown";
-        const xp = user.xp || 0;
-        const role = user.role || "student";
-        const history = user.history || {};
-        const attempts = Object.keys(history).length;
-        let totalScore = 0;
+      if (!questions || !answers) {
+        modalContent.innerHTML = "<p class='text-red-600'>No answer data stored.</p>";
+        return;
+      }
 
-        for (let key in history) {
-          totalScore += history[key].score || 0;
-        }
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="border p-2 text-xs">${uid}</td>
-          <td class="border p-2">${name}</td>
-          <td class="border p-2">${xp}</td>
-          <td class="border p-2">${role}</td>
-          <td class="border p-2">${attempts}</td>
-          <td class="border p-2">${totalScore}</td>
-          <td class="border p-2 text-center">
-            <a href="admin-user-answers.html?uid=${uid}" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">View</a>
-          </td>
+      questions.forEach((q, i) => {
+        const isCorrect = q.answer === answers[i];
+        const div = document.createElement("div");
+        div.className = "border-b pb-3";
+        div.innerHTML = `
+          <p class="font-semibold">Q${i + 1}: ${q.q}</p>
+          <p>Your Answer: <span class="${isCorrect ? 'text-green-600' : 'text-red-600'}">${answers[i] || 'Not answered'} ${isCorrect ? '✅' : '❌'}</span></p>
+          <p>Correct Answer: <span class="text-green-700">${q.answer}</span></p>
         `;
-        tbody.appendChild(tr);
+        modalContent.appendChild(div);
       });
-    }
-  </script></body>
-</html>
+    };
+
+    window.closeModal = () => {
+      modal.classList.add("hidden");
+      modalContent.innerHTML = "";
+    };
+  </script>
+</body>
+  </html>
