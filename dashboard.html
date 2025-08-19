@@ -7,7 +7,6 @@
 </head>
 <body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen">
   <!-- Top Bar -->
-  <div id="notif-container"></div>
   <div class="flex justify-between items-center px-6 py-4">
     <div class="flex items-center gap-4">
       <img id="avatar" src="/avatar/default.png" class="w-12 h-12 rounded-full border-2 border-white cursor-pointer" onclick="toggleProfile()"/>
@@ -100,47 +99,23 @@
     window.toggleNotifications = () => {
       document.getElementById("notifications").classList.toggle("hidden");
     }
-    // After loadNotifications() definition, replace with this better version:
 
-async function loadNotifications() {
-  const notifSnap = await getDocs(collection(db, "broadcast"));
-  const notifList = document.getElementById("notif-list");
+    async function loadNotifications() {
+      const notifSnap = await getDocs(collection(db, "broadcast"));
+      const notifList = document.getElementById("notif-list");
+      const count = notifSnap.docs.length;
+      document.getElementById("notif-count").textContent = count;
 
-  // user's own read history
-  const userRef = doc(db, "users", user.uid);
-  const userSnap = await getDoc(userRef);
-  const readMap = userSnap.data().readNotifs || {};
-
-  notifList.innerHTML = "";
-  notifSnap.forEach(docMsg => {
-    const msgData = docMsg.data();
-    const msgId = docMsg.id;
-
-    // Skip if already dismissed by this user
-    if (readMap[msgId]) {
-      return;
+      notifList.innerHTML = "";
+      notifSnap.forEach(doc => {
+        notifList.innerHTML += `<div class='p-2 bg-gray-100 rounded'>${doc.data().msg}</div>`;
+      });
     }
 
-    notifList.innerHTML += `
-      <div class='p-2 bg-gray-100 rounded flex justify-between items-center'>
-        <span>${msgData.msg}</span>
-        <button onclick="dismissNotif('${msgId}')" class="text-red-600 font-bold">X</button>
-      </div>
-    `;
-  });
-
-  // update count
-  document.getElementById("notif-count").textContent = notifSnap.docs.length - Object.keys(readMap).length;
-}
-
-// Add new function for dismiss
-window.dismissNotif = async (id) => {
-  const userRef = doc(db, "users", user.uid);
-  await updateDoc(userRef, {
-    [`readNotifs.${id}`]: true
-  });
-  loadNotifications(); // refresh list after dismiss
+    window.openSubject = (subject) => {
+      localStorage.setItem("selected_subject", subject);
+      window.location.href = "quizzes.html";
     }
-    
   </script></body>
-</html>
+          </html>
+    
