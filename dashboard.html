@@ -100,36 +100,47 @@
     window.toggleNotifications = () => {
       document.getElementById("notifications").classList.toggle("hidden");
     }
+    // After loadNotifications() definition, replace with this better version:
 
-    async function loadNotifications() {
+async function loadNotifications() {
   const notifSnap = await getDocs(collection(db, "broadcast"));
-  const notifList = document.getElementById("notif-count");
-  notifList.innerHTML = "";
+  const notifList = document.getElementById("notif-list");
 
-  // Load user readNotifs
-  const userRef = doc(db, "users", userUID); // replace userUID accordingly
+  // user's own read history
+  const userRef = doc(db, "users", user.uid);
   const userSnap = await getDoc(userRef);
-  const userData = userSnap.data() || {};
-  const readMap = userData.readNotifs || {};
+  const readMap = userSnap.data().readNotifs || {};
 
-  notifSnap.forEach(doc => {
-    if (readMap[doc.id]) {
-      return; // skip this message
+  notifList.innerHTML = "";
+  notifSnap.forEach(docMsg => {
+    const msgData = docMsg.data();
+    const msgId = docMsg.id;
+
+    // Skip if already dismissed by this user
+    if (readMap[msgId]) {
+      return;
     }
-    const msg = doc.data().msg;
+
     notifList.innerHTML += `
-      <div class="bg-yellow-300 p-3 rounded flex justify-between mb-2">
-        <span>${msg}</span>
-        <button onclick="dismissNotif('${doc.id}')" class="text-black font-bold">×</button>
+      <div class='p-2 bg-gray-100 rounded flex justify-between items-center'>
+        <span>${msgData.msg}</span>
+        <button onclick="dismissNotif('${msgId}')" class="text-red-600 font-bold">X</button>
       </div>
     `;
   });
+
+  // update count
+  document.getElementById("notif-count").textContent = notifSnap.docs.length - Object.keys(readMap).length;
 }
-    window.dismissNotif = async (id) => {
-  await updateDoc(doc(db, "users", userUID), {
+
+// Add new function for dismiss
+window.dismissNotif = async (id) => {
+  const userRef = doc(db, "users", user.uid);
+  await updateDoc(userRef, {
     [`readNotifs.${id}`]: true
   });
-  loadNotifications(); // hide on UI also
-      }
+  loadNotifications(); // refresh list after dismiss
+    }
+    
   </script></body>
 </html>
