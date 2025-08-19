@@ -164,5 +164,21 @@
     }
 
     loadUsers();
+    function loadAnnouncements() {
+    const list = document.getElementById("announcementList");
+    list.innerHTML = "";  
+
+    db.collection("announcements").get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <span>${data.text}</span>
+                <button onclick="deleteAnnouncement('${doc.id}')">Delete</button>
+            `;
+            list.appendChild(li);
+        });
+    });
+        }
   </script></body>
 </html>
