@@ -164,6 +164,10 @@
     }
 
     loadUsers();
+    window.onload = function() {
+  loadAnnouncements();
+  // ...any other load calls
+    }
     function loadAnnouncements() {
     const list = document.getElementById("announcementList");
     list.innerHTML = "";  
