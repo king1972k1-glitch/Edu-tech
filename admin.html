@@ -100,7 +100,7 @@
     window.sendBroadcast = async () => {
       const msg = document.getElementById("broadcast-msg").value;
       if (!msg) return alert("Message empty");
-      await setDoc(doc(db, "announcements", new Date().toISOString()), {
+      await setDoc(doc(db, "broadcast", new Date().toISOString()), {
         msg,
         createdAt: new Date().toISOString()
       });
