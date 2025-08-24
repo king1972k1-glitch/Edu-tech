@@ -1,4 +1,6 @@
-<!-- admin.html - EduTech Admin Panel with Quiz Edit/Delete --><!DOCTYPE html><html lang="en">
+<!-- admin.html - EduTech Admin Panel (Final with Custom Broadcast Expiry) -->
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -6,53 +8,68 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-blue-900 text-white min-h-screen p-6">
-  <h1 class="text-3xl font-bold mb-6 text-center">🛠️ Admin Panel</h1>  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <!-- Users List -->
+  <h1 class="text-3xl font-bold mb-6 text-center">🛠️ Admin Panel</h1>  
 
-    <h2>Broadcast Messages</h2>
-<ul id="announcementList"></ul>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Users List -->
     <div class="bg-white text-black p-4 rounded-xl shadow-xl">
       <h2 class="text-xl font-semibold mb-2">👥 All Users</h2>
       <input id="search-user" type="text" placeholder="Search user..." class="p-2 border rounded w-full mb-2">
       <ul id="user-list" class="space-y-2 max-h-96 overflow-y-auto"></ul>
-    </div><!-- Broadcast Message -->
-<div class="bg-white text-black p-4 rounded-xl shadow-xl">
-  <h2 class="text-xl font-semibold mb-2">📢 Broadcast Message</h2>
-  <textarea id="broadcast-msg" class="w-full p-2 border rounded mb-2" rows="4" placeholder="Enter your message to all users..."></textarea>
-  <button onclick="sendBroadcast()" class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800">Send</button>
-</div>
-<a href="user-scores.html" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100">📖 View Quiz History</a>
- <a href="admin-user-answers.html" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100">📝 User History</a>
- <a href="moderator.html" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100">🥇 Moderator Pannel</a>
+    </div>
 
-    
-    
+    <!-- Broadcast Message -->
+    <div class="bg-white text-black p-4 rounded-xl shadow-xl">
+      <h2 class="text-xl font-semibold mb-2">📢 Broadcast Message</h2>
+      <textarea id="broadcast-msg" class="w-full p-2 border rounded mb-2" rows="3" placeholder="Enter your message to all users..."></textarea>
 
+      <label class="block mb-2 font-semibold">⏰ Expiry Time</label>
+      <div class="flex gap-2 mb-2">
+        <input id="expiry-value" type="number" min="1" value="24" class="w-24 p-2 border rounded" />
+        <select id="expiry-unit" class="p-2 border rounded">
+          <option value="minutes">Minutes</option>
+          <option value="hours" selected>Hours</option>
+          <option value="days">Days</option>
+        </select>
+      </div>
 
-<!-- Manual XP -->
-<div class="bg-w p-4 rounded-xl shadow-xl">
-  <h2 class="text-xl font-semibold mb-2">🏅 Award/Remove XP</h2>
-  <input id="xp-user-id" class="w-full p-2 rounded border mb-2" placeholder="User UID">
-  <input id="xp-amount" class="w-full p-2 rounded border mb-2" placeholder="XP (+/-)">
-  <button onclick="updateXP()" class="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800">Update XP</button>
-</div>
+      <button onclick="sendBroadcast()" class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800">Send</button>
 
-<!-- Reset Leaderboard -->
-<div class="bg-white text-black p-4 rounded-xl shadow-xl">
-  <h2 class="text-xl font-semibold mb-2">🔄 Reset Leaderboard</h2>
-  <button onclick="resetLeaderboard()" class="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800">Reset All XP</button>
-</div>
+      <h3 class="text-lg font-semibold mt-4">📜 All Broadcasts</h3>
+      <ul id="broadcast-list" class="space-y-2 max-h-64 overflow-y-auto mt-2"></ul>
+    </div>
 
-  </div>  <div class="max-w-5xl mx-auto mt-10 bg-white text-black p-4 rounded-xl shadow-xl">
+    <!-- User Scores -->
+    <a href="user-scores.html" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100">📖 View Quiz History</a>
+
+    <!-- Manual XP -->
+    <div class="bg-white text-black p-4 rounded-xl shadow-xl">
+      <h2 class="text-xl font-semibold mb-2">🏅 Award/Remove XP</h2>
+      <input id="xp-user-id" class="w-full p-2 rounded border mb-2" placeholder="User UID">
+      <input id="xp-amount" class="w-full p-2 rounded border mb-2" placeholder="XP (+/-)">
+      <button onclick="updateXP()" class="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800">Update XP</button>
+    </div>
+
+    <!-- Reset Leaderboard -->
+    <div class="bg-white text-black p-4 rounded-xl shadow-xl">
+      <h2 class="text-xl font-semibold mb-2">🔄 Reset Leaderboard</h2>
+      <button onclick="resetLeaderboard()" class="bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800">Reset All XP</button>
+    </div>
+  </div>
+
+  <!-- Quiz Edit/Delete -->
+  <div class="max-w-5xl mx-auto mt-10 bg-white text-black p-4 rounded-xl shadow-xl">
     <h2 class="text-xl font-semibold mb-4">📝 Edit/Delete Quiz Questions</h2>
     <input id="quiz-id" class="w-full p-2 rounded border mb-2" placeholder="Enter Quiz ID (e.g. Science_Chapter1_Quiz1)" />
-    <button onclick="loadQuiz()" class="bg-yellow-600 text-white px-4 py-2 rounded mb-4 hover:bg-yellow-700">Load Quiz</button><textarea id="quiz-data" class="w-full p-2 rounded border h-60 mb-4" placeholder='Quiz data will appear here after loading...'></textarea>
-<div class="flex gap-4">
-  <button onclick="updateQuiz()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Save Changes</button>
-  <button onclick="deleteQuiz()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Delete Quiz</button>
-</div>
+    <button onclick="loadQuiz()" class="bg-yellow-600 text-white px-4 py-2 rounded mb-4 hover:bg-yellow-700">Load Quiz</button>
+    <textarea id="quiz-data" class="w-full p-2 rounded border h-60 mb-4" placeholder='Quiz data will appear here after loading...'></textarea>
+    <div class="flex gap-4">
+      <button onclick="updateQuiz()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Save Changes</button>
+      <button onclick="deleteQuiz()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Delete Quiz</button>
+    </div>
+  </div>
 
-  </div>  <script type="module">
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { getFirestore, collection, getDocs, doc, updateDoc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
@@ -70,17 +87,19 @@
 
     const userList = document.getElementById("user-list");
     const searchUser = document.getElementById("search-user");
+    const broadcastList = document.getElementById("broadcast-list");
 
+    // Load Users
     async function loadUsers() {
       const users = await getDocs(collection(db, "users"));
       userList.innerHTML = "";
-      users.forEach(doc => {
-        const data = doc.data();
+      users.forEach(docSnap => {
+        const data = docSnap.data();
         const li = document.createElement("li");
         li.className = "p-2 bg-gray-100 rounded flex justify-between items-center";
         li.innerHTML = `
           <span><b>${data.name || "No Name"}</b> (${data.role || "student"}) — XP: ${data.xp || 0}</span>
-          <button class='bg-red-500 px-2 py-1 text-sm rounded text-white' onclick="blockUser('${doc.id}')">Block</button>
+          <button class='bg-red-500 px-2 py-1 text-sm rounded text-white' onclick="blockUser('${docSnap.id}')">Block</button>
         `;
         userList.appendChild(li);
       });
@@ -98,18 +117,93 @@
       await updateDoc(doc(db, "users", uid), { role: "blocked" });
       alert("User blocked!");
       loadUsers();
-    }
+    };
 
+    // --- Broadcast Functions ---
     window.sendBroadcast = async () => {
-      const msg = document.getElementById("broadcast-msg").value;
+      const msg = document.getElementById("broadcast-msg").value.trim();
+      const expiryValue = parseInt(document.getElementById("expiry-value").value);
+      const expiryUnit = document.getElementById("expiry-unit").value;
+
       if (!msg) return alert("Message empty");
-      await setDoc(doc(db, "broadcast", new Date().toISOString()), {
+      if (isNaN(expiryValue) || expiryValue <= 0) return alert("Invalid expiry time");
+
+      const id = new Date().toISOString();
+      const createdAt = new Date();
+
+      // convert expiry into milliseconds
+      let expiryMs = expiryValue * 60 * 1000; // minutes
+      if (expiryUnit === "hours") expiryMs = expiryValue * 60 * 60 * 1000;
+      if (expiryUnit === "days") expiryMs = expiryValue * 24 * 60 * 60 * 1000;
+
+      const expireAt = new Date(createdAt.getTime() + expiryMs);
+
+      await setDoc(doc(db, "announcements", id), {
         msg,
-        createdAt: new Date().toISOString()
+        createdAt: createdAt.toISOString(),
+        expireAt: expireAt.toISOString()
       });
-      alert("Message sent to all users");
+
+      document.getElementById("broadcast-msg").value = "";
+      loadBroadcasts();
+      alert(`Message sent! It will auto-expire in ${expiryValue} ${expiryUnit}.`);
+    };
+
+    async function loadBroadcasts() {
+      const snaps = await getDocs(collection(db, "announcements"));
+      let messages = [];
+      const now = new Date();
+
+      snaps.forEach(docSnap => {
+        const data = docSnap.data();
+        const expire = data.expireAt ? new Date(data.expireAt) : null;
+
+        if (expire && expire < now) {
+          // Auto delete expired
+          deleteDoc(doc(db, "announcements", docSnap.id));
+        } else {
+          messages.push({ id: docSnap.id, ...data });
+        }
+      });
+
+      // Sort latest first
+      messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      broadcastList.innerHTML = "";
+      messages.forEach(b => {
+        const li = document.createElement("li");
+        li.className = "p-2 bg-gray-100 rounded flex justify-between items-center";
+        li.innerHTML = `
+          <div class="flex-1">
+            <p>${b.msg}</p>
+            <small class="text-gray-600">
+              Sent: ${new Date(b.createdAt).toLocaleString()}<br>
+              Expires: ${b.expireAt ? new Date(b.expireAt).toLocaleString() : "Never"}
+            </small>
+          </div>
+          <div class="flex gap-2 ml-2">
+            <button class="bg-yellow-500 px-2 py-1 text-sm rounded text-white" onclick="editBroadcast('${b.id}', \`${b.msg}\`)">Edit</button>
+            <button class="bg-red-600 px-2 py-1 text-sm rounded text-white" onclick="deleteBroadcast('${b.id}')">Delete</button>
+          </div>
+        `;
+        broadcastList.appendChild(li);
+      });
     }
 
+    window.editBroadcast = async (id, oldMsg) => {
+      const newMsg = prompt("Edit broadcast message:", oldMsg);
+      if (!newMsg) return;
+      await updateDoc(doc(db, "announcements", id), { msg: newMsg });
+      loadBroadcasts();
+    };
+
+    window.deleteBroadcast = async (id) => {
+      if (!confirm("Delete this broadcast?")) return;
+      await deleteDoc(doc(db, "announcements", id));
+      loadBroadcasts();
+    };
+
+    // XP Update
     window.updateXP = async () => {
       const uid = document.getElementById("xp-user-id").value;
       const amount = parseInt(document.getElementById("xp-amount").value);
@@ -119,8 +213,9 @@
       const currentXP = snap.data()?.xp || 0;
       await updateDoc(ref, { xp: currentXP + amount });
       alert("XP updated");
-    }
+    };
 
+    // Reset Leaderboard
     window.resetLeaderboard = async () => {
       if (!confirm("Are you sure? This will reset ALL users' XP.")) return;
       const users = await getDocs(collection(db, "users"));
@@ -129,8 +224,9 @@
       });
       alert("Leaderboard reset done.");
       loadUsers();
-    }
+    };
 
+    // Quiz functions
     window.loadQuiz = async () => {
       const quizId = document.getElementById("quiz-id").value.trim();
       if (!quizId) return alert("Enter quiz ID.");
@@ -138,7 +234,7 @@
       const snap = await getDoc(ref);
       if (!snap.exists()) return alert("Quiz not found.");
       document.getElementById("quiz-data").value = JSON.stringify(snap.data().questions, null, 2);
-    }
+    };
 
     window.updateQuiz = async () => {
       const quizId = document.getElementById("quiz-id").value.trim();
@@ -151,7 +247,7 @@
       }
       await updateDoc(doc(db, "questions", quizId), { questions: updated });
       alert("Quiz updated successfully.");
-    }
+    };
 
     window.deleteQuiz = async () => {
       const quizId = document.getElementById("quiz-id").value.trim();
@@ -161,28 +257,11 @@
       alert("Quiz deleted");
       document.getElementById("quiz-id").value = "";
       document.getElementById("quiz-data").value = "";
-    }
+    };
 
+    // Load initial data
     loadUsers();
-    window.onload = function() {
-  loadAnnouncements();
-  // ...any other load calls
-    }
-    function loadAnnouncements() {
-    const list = document.getElementById("announcementList");
-    list.innerHTML = "";  
-
-    db.collection("broadcast").get().then((querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            const li = document.createElement("li");
-            li.innerHTML = `
-                <span>${data.text}</span>
-                <button onclick="deleteAnnouncement('${doc.id}')">Delete</button>
-            `;
-            list.appendChild(li);
-        });
-    });
-        }
-  </script></body>
-</html>
+    loadBroadcasts();
+  </script>
+</body>
+        </html>
