@@ -1,4 +1,4 @@
-        <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -7,6 +7,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-4">
+  <!-- Loader -->
+  <div id="loader" class="fixed inset-0 bg-gray-900 flex flex-col items-center justify-center z-50">
+    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 mb-4"></div>
+    <p class="text-lg">Loading your quiz history...</p>
+  </div>
+
   <h1 class="text-3xl font-bold text-center mb-6">📘 My Quiz History</h1>
   <div class="bg-white text-black p-4 rounded-xl max-w-4xl mx-auto shadow-xl overflow-auto">
     <table class="w-full border text-sm">
@@ -49,9 +55,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
+
     const tbody = document.getElementById("historyTable");
     const modal = document.getElementById("answerModal");
     const modalContent = document.getElementById("modalContent");
+    const loader = document.getElementById("loader");
 
     function closeModal() {
       modal.classList.add("hidden");
@@ -60,20 +68,24 @@
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
+
       const ref = doc(db, "users", user.uid);
       const snap = await getDoc(ref);
       const data = snap.data();
+
+      loader.classList.add("hidden"); // ✅ hide loader after data loads
 
       if (!data || !data.history) {
         tbody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500 py-4">No quiz attempts found.</td></tr>`;
         return;
       }
 
-      // ✅ handle multiple attempts per quiz
       for (const quizName in data.history) {
-        const attempts = data.history[quizName]; // now an array
+        const attempts = data.history[quizName];
+        if (!Array.isArray(attempts)) continue;
+
         attempts.forEach((attempt, idx) => {
-          const { score, total, timestamp, answers } = attempt;
+          const { score, total, timestamp } = attempt;
           const tr = document.createElement("tr");
           tr.className = "border-t";
           tr.innerHTML = `
@@ -102,7 +114,6 @@
       const attempt = data.history[quizName][attemptIndex];
       const { answers } = attempt;
 
-      // ✅ fetch quiz questions for correct answers
       const quizSnap = await getDoc(doc(db, "questions", quizName));
       if (!quizSnap.exists()) {
         modalContent.innerHTML = "<p class='text-red-500'>Quiz questions not found in database.</p>";
