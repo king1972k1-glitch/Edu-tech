@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+        <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -69,43 +69,65 @@
         return;
       }
 
+      // ✅ handle multiple attempts per quiz
       for (const quizName in data.history) {
-        const { score, total, timestamp, questions, answers } = data.history[quizName];
-        const tr = document.createElement("tr");
-        tr.className = "border-t";
-        tr.innerHTML = `
-          <td class="border p-2">${quizName}</td>
-          <td class="border p-2">${score}</td>
-          <td class="border p-2">${total}</td>
-          <td class="border p-2">${timestamp || '—'}</td>
-          <td class="border p-2">
-            <button class="bg-blue-600 text-white px-2 py-1 rounded text-sm" onclick='showAnswers(${JSON.stringify(questions)}, ${JSON.stringify(answers)})'>View</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
+        const attempts = data.history[quizName]; // now an array
+        attempts.forEach((attempt, idx) => {
+          const { score, total, timestamp, answers } = attempt;
+          const tr = document.createElement("tr");
+          tr.className = "border-t";
+          tr.innerHTML = `
+            <td class="border p-2">${quizName} <span class="text-xs text-gray-500">(Attempt ${idx + 1})</span></td>
+            <td class="border p-2">${score}</td>
+            <td class="border p-2">${total}</td>
+            <td class="border p-2">${timestamp || '—'}</td>
+            <td class="border p-2">
+              <button class="bg-blue-600 text-white px-2 py-1 rounded text-sm" onclick='showAnswers("${quizName}", ${idx})'>View</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
       }
     });
 
-    window.showAnswers = (questions, answers) => {
-      modal.classList.remove("hidden");
-      modalContent.innerHTML = "";
-      if (!questions || !answers) {
-        modalContent.innerHTML = "<p class='text-red-500'>No answer data stored for this quiz.</p>";
+    // ✅ Show answers with correct vs user answer
+    window.showAnswers = async (quizName, attemptIndex) => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref);
+      const data = snap.data();
+
+      const attempt = data.history[quizName][attemptIndex];
+      const { answers } = attempt;
+
+      // ✅ fetch quiz questions for correct answers
+      const quizSnap = await getDoc(doc(db, "questions", quizName));
+      if (!quizSnap.exists()) {
+        modalContent.innerHTML = "<p class='text-red-500'>Quiz questions not found in database.</p>";
+        modal.classList.remove("hidden");
         return;
       }
-      questions.forEach((q, i) => {
-        const userAns = answers[i];
+      const quizData = quizSnap.data().questions;
+
+      modal.classList.remove("hidden");
+      modalContent.innerHTML = "";
+      quizData.forEach((q, i) => {
+        const userAns = answers ? answers[i] : null;
         const correct = q.answer === userAns;
         const div = document.createElement("div");
         div.className = "border-b pb-3";
         div.innerHTML = `
           <p class="font-semibold">Q${i + 1}: ${q.q}</p>
-          <p>Your Answer: <span class="${correct ? 'text-green-600' : 'text-red-600'}">${userAns || "Not Answered"} ${correct ? '✅' : '❌'}</span></p>
+          <p>Your Answer: <span class="${correct ? 'text-green-600' : 'text-red-600'}">${userAns || "Not Answered"} ${userAns ? (correct ? '✅' : '❌') : ''}</span></p>
           <p>Correct Answer: <span class="text-green-700">${q.answer}</span></p>
         `;
         modalContent.appendChild(div);
       });
-    }
+    };
+
+    window.closeModal = closeModal;
   </script>
 </body>
 </html>
