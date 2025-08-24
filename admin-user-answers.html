@@ -23,7 +23,7 @@
 
   <!-- Modal -->
   <div id="historyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white text-black max-w-5xl w-full max-h-[85vh] overflow-y-auto p-6 rounded-xl">
+    <div class="bg-white text-black max-w-4xl w-full max-h-[80vh] overflow-y-auto p-6 rounded-xl">
       <h2 id="modalTitle" class="text-xl font-bold mb-4">📘 User Quiz History</h2>
       
       <!-- Loader inside modal -->
@@ -32,9 +32,20 @@
         <span class="ml-3 text-gray-700">Loading history...</span>
       </div>
 
-      <div id="modalContent" class="hidden space-y-6"></div>
+      <div id="modalContent" class="hidden">
+        <div id="historyContent"></div>
+      </div>
 
       <button onclick="closeModal()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded">Close</button>
+    </div>
+  </div>
+
+  <!-- Answers Modal -->
+  <div id="answersModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white text-black max-w-4xl w-full max-h-[80vh] overflow-y-auto p-6 rounded-xl">
+      <h2 id="answersTitle" class="text-xl font-bold mb-4">📘 Quiz Answers</h2>
+      <div id="answersContent"></div>
+      <button onclick="closeAnswersModal()" class="mt-4 bg-red-600 text-white px-4 py-2 rounded">Close</button>
     </div>
   </div>
 
@@ -61,17 +72,27 @@
     const modal = document.getElementById("historyModal");
     const modalLoader = document.getElementById("modalLoader");
     const modalContent = document.getElementById("modalContent");
+    const historyContent = document.getElementById("historyContent");
     const modalTitle = document.getElementById("modalTitle");
 
-    // Close Modal
+    const answersModal = document.getElementById("answersModal");
+    const answersContent = document.getElementById("answersContent");
+    const answersTitle = document.getElementById("answersTitle");
+
+    // Close Modals
     window.closeModal = () => {
       modal.classList.add("hidden");
-      modalContent.innerHTML = "";
+      historyContent.innerHTML = "";
       modalLoader.classList.remove("hidden");
       modalContent.classList.add("hidden");
     };
 
-    // View User History (with answers)
+    window.closeAnswersModal = () => {
+      answersModal.classList.add("hidden");
+      answersContent.innerHTML = "";
+    };
+
+    // View User History (only quiz names + view answers button)
     window.viewUserHistory = async (uid, name) => {
       modal.classList.remove("hidden");
       modalLoader.classList.remove("hidden");
@@ -86,57 +107,73 @@
       modalContent.classList.remove("hidden");
 
       if (!data || !data.history) {
-        modalContent.innerHTML = `<p class="text-center text-gray-500 py-4">No quiz attempts found.</p>`;
+        historyContent.innerHTML = `<p class="text-center text-gray-500 py-4">No quiz attempts found.</p>`;
         return;
       }
 
-      modalContent.innerHTML = "";
+      historyContent.innerHTML = "";
+
       for (const quizName in data.history) {
         const attempts = data.history[quizName];
         if (!Array.isArray(attempts)) continue;
 
-        attempts.forEach(async (attempt, idx) => {
-          const { score, total, timestamp, answers } = attempt;
-
-          // 🔹 Fetch quiz questions from "questions" collection
-          const quizSnap = await getDoc(doc(db, "questions", quizName));
-          let quizData = [];
-          if (quizSnap.exists()) {
-            quizData = quizSnap.data().questions;
-          }
-
-          // Create attempt block
-          const block = document.createElement("div");
-          block.className = "border p-4 rounded-lg bg-gray-100";
-
-          block.innerHTML = `
-            <h3 class="font-bold text-lg mb-2">${quizName} - Attempt ${idx + 1}</h3>
-            <p class="text-sm text-gray-600 mb-2">Date: ${timestamp || "—"} | Score: ${score}/${total}</p>
-            <div class="space-y-3" id="attempt-${quizName}-${idx}"></div>
-          `;
-          modalContent.appendChild(block);
-
-          // Fill questions review
-          const container = block.querySelector(`#attempt-${quizName}-${idx}`);
-          quizData.forEach((q, i) => {
-            const userAns = answers ? answers[i] : null;
-            const correct = q.answer === userAns;
-            const div = document.createElement("div");
-            div.className = "border-b pb-2";
-            div.innerHTML = `
-              <p class="font-medium">Q${i + 1}: ${q.q}</p>
-              <p>Your Answer: <span class="${correct ? 'text-green-600' : 'text-red-600'}">
-                ${userAns || "Not Answered"} ${userAns ? (correct ? '✅' : '❌') : ''}
-              </span></p>
-              <p>Correct Answer: <span class="text-green-700">${q.answer}</span></p>
-            `;
-            container.appendChild(div);
-          });
-        });
+        let quizBlock = `<div class="mb-4 p-3 border rounded bg-gray-50 flex justify-between items-center">
+          <span class="font-semibold">${quizName}</span>
+          <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm" onclick='viewQuizAnswers("${uid}", "${quizName}")'>View Answers</button>
+        </div>`;
+        historyContent.innerHTML += quizBlock;
       }
     };
 
-    // Load Users (only for admin)
+    // View Answers of specific quiz
+    window.viewQuizAnswers = async (uid, quizName) => {
+      answersModal.classList.remove("hidden");
+      answersTitle.innerText = `📘 Answers - ${quizName}`;
+      answersContent.innerHTML = `<p class="text-gray-500">Loading...</p>`;
+
+      const ref = doc(db, "users", uid);
+      const snap = await getDoc(ref);
+      const data = snap.data();
+
+      const quizDoc = await getDoc(doc(db, "questions", quizName));
+      const quizQuestions = quizDoc.exists() ? quizDoc.data().questions : [];
+
+      answersContent.innerHTML = "";
+
+      if (!data || !data.history || !data.history[quizName]) {
+        answersContent.innerHTML = `<p class="text-center text-gray-500">No answers found.</p>`;
+        return;
+      }
+
+      const attempts = data.history[quizName];
+      attempts.forEach((attempt, idx) => {
+        let block = `<div class="mb-6 p-4 border rounded bg-gray-100">
+          <p class="font-bold">Attempt ${idx+1} - Score: ${attempt.score}/${attempt.total} (${attempt.timestamp || "—"})</p>`;
+
+        if (attempt.answers && quizQuestions.length) {
+          quizQuestions.forEach((q, i) => {
+            const userAns = attempt.answers[i] || "Not Answered";
+            const correctAns = q.answer;
+            const isCorrect = userAns === correctAns;
+            block += `
+              <div class="mt-2">
+                <p><b>Q${i+1}: ${q.q}</b></p>
+                <p>Your Answer: <span class="${isCorrect ? 'text-green-600' : 'text-red-600'}">${userAns}</span> ${isCorrect ? "✔️" : "❌"}</p>
+                <p>Correct Answer: <span class="text-green-600">${correctAns}</span></p>
+              </div>
+              <hr class="my-2">
+            `;
+          });
+        } else {
+          block += `<p class="text-gray-500">No answers saved for this attempt.</p>`;
+        }
+
+        block += `</div>`;
+        answersContent.innerHTML += block;
+      });
+    };
+
+    // Load Users
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
 
@@ -164,9 +201,8 @@
         userList.appendChild(li);
       });
 
-      // ✅ hide page loader after users are loaded
       pageLoader.classList.add("hidden");
     });
   </script>
 </body>
-</html>
+  </html>
