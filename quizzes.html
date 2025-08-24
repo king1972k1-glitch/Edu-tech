@@ -1,4 +1,6 @@
-<!-- quizzes.html - Show quizzes for a selected subject --><!DOCTYPE html><html lang="en">
+<!-- quizzes.html - Show quizzes for a selected subject -->
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -6,7 +8,19 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen p-6">
-  <h1 class="text-3xl font-bold mb-6">📚 <span id="subject-name">Subject</span> Quizzes</h1>  <div id="quiz-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>  <script type="module">
+
+  <!-- Loading Spinner -->
+  <div id="loading" class="fixed inset-0 bg-white/80 flex justify-center items-center z-50">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-700"></div>
+  </div>
+
+  <!-- Content -->
+  <div id="content" class="hidden">
+    <h1 class="text-3xl font-bold mb-6">📚 <span id="subject-name">Subject</span> Quizzes</h1>
+    <div id="quiz-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+  </div>
+
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
@@ -22,32 +36,48 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    const loadingEl = document.getElementById("loading");
+    const contentEl = document.getElementById("content");
+    const quizList = document.getElementById("quiz-list");
     const subject = localStorage.getItem("selected_subject") || "Subject";
     document.getElementById("subject-name").textContent = subject;
 
-    const quizList = document.getElementById("quiz-list");
-    const allQuestions = await getDocs(collection(db, "questions"));
-    let count = 0;
+    const loadQuizzes = async () => {
+      try {
+        const allQuestions = await getDocs(collection(db, "questions"));
+        let count = 0;
 
-    allQuestions.forEach(doc => {
-      if (doc.id.startsWith(subject)) {
-        count++;
-        quizList.innerHTML += `
-          <div class='bg-white text-blue-900 p-4 rounded shadow hover:scale-105 transition cursor-pointer' onclick="startQuiz('${doc.id}')">
-            <h3 class='text-lg font-bold'>📝 ${doc.id.replace(/_/g, ' ')}</h3>
-            <p class='text-sm'>Click to begin quiz</p>
-          </div>
-        `;
+        allQuestions.forEach(doc => {
+          if (doc.id.startsWith(subject)) {
+            count++;
+            quizList.innerHTML += `
+              <div class='bg-white text-blue-900 p-4 rounded shadow hover:scale-105 transition cursor-pointer' onclick="startQuiz('${doc.id}')">
+                <h3 class='text-lg font-bold'>📝 ${doc.id.replace(/_/g, ' ')}</h3>
+                <p class='text-sm'>Click to begin quiz</p>
+              </div>
+            `;
+          }
+        });
+
+        if (count === 0) {
+          quizList.innerHTML = `<p class='text-white opacity-80'>No quizzes found for ${subject}.</p>`;
+        }
+
+      } catch (err) {
+        quizList.innerHTML = `<p class='text-red-500'>Error loading quizzes: ${err.message}</p>`;
+      } finally {
+        // Hide spinner & show content
+        loadingEl.style.display = "none";
+        contentEl.classList.remove("hidden");
       }
-    });
-
-    if (count === 0) {
-      quizList.innerHTML = `<p class='text-white opacity-80'>No quizzes found for ${subject}.</p>`;
-    }
+    };
 
     window.startQuiz = (quizId) => {
       localStorage.setItem("quiz_id", quizId);
       window.location.href = "practice.html";
     }
-  </script></body>
+
+    loadQuizzes();
+  </script>
+</body>
 </html>
