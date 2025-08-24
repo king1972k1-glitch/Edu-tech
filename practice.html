@@ -124,15 +124,18 @@
       const userSnap = await getDoc(userRef);
       const currentXP = userSnap.data().xp || 0;
 
-      await updateDoc(userRef, {
-        xp: currentXP + xpEarned,
-        [`history.${quizId}`]: arrayUnion({   // ✅ multiple attempts stored
-          score,
-          total: quizData.length,
-          timestamp: new Date().toISOString(),
-          answers: answers   // ✅ user ke diye gaye answers bhi save honge
-        })
-      });
+     await updateDoc(userRef, {
+  xp: currentXP + xpEarned,
+  [`history.${quizId}`]: arrayUnion({
+    score,
+    total: quizData.length,
+    timestamp: new Date().toISOString(),
+    answers: quizData.map((q, i) => {
+      const selected = document.querySelector(`input[name='q${i}']:checked`);
+      return selected ? selected.value : "Not Answered";
+    })
+  })
+});
 
       alert(`✅ You scored ${score}/${quizData.length} and earned ${xpEarned} XP!`);
       location.href = "dashboard.html";
