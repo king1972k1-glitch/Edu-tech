@@ -22,7 +22,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -47,25 +47,31 @@
     let quizData = [];
     let userUID = null;
     let currentIndex = 0;
-    let answers = {};
+    window.answers = {};   // ✅ answers global
 
+    // ✅ Auth and Quiz Data Load
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = 'index.html';
       userUID = user.uid;
       const docSnap = await getDoc(doc(db, "questions", quizId));
       if (!docSnap.exists()) return alert("Quiz not found");
-      quizData = docSnap.data().questions;
-      renderQuestion();   // ✅ Pehla question show karo
+
+      quizData = docSnap.data().questions || [];
+      if (quizData.length === 0) {
+        quizBox.innerHTML = "<p class='text-red-500'>No questions found in this quiz.</p>";
+      } else {
+        renderQuestion();   // ✅ show first question
+      }
     });
 
+    // ✅ Render One Question
     function renderQuestion() {
       const q = quizData[currentIndex];
       const options = q.options.map(opt => `
         <label class='block'>
           <input type='radio' name='q${currentIndex}' value='${opt}'
-            ${answers[currentIndex] === opt ? "checked" : ""} 
-            onchange="answers[${currentIndex}]='${opt}'"
-          > ${opt}
+            ${answers[currentIndex] === opt ? "checked" : ""}>
+          ${opt}
         </label>
       `).join('');
 
@@ -76,12 +82,20 @@
         </div>
       `;
 
-      // Button visibility
+      // ✅ Save selected answer
+      document.querySelectorAll(`input[name='q${currentIndex}']`).forEach(input => {
+        input.addEventListener("change", (e) => {
+          answers[currentIndex] = e.target.value;
+        });
+      });
+
+      // ✅ Button visibility
       document.getElementById("prev-btn").classList.toggle("hidden", currentIndex === 0);
       document.getElementById("next-btn").classList.toggle("hidden", currentIndex === quizData.length - 1);
       document.getElementById("submit-btn").classList.toggle("hidden", currentIndex !== quizData.length - 1);
     }
 
+    // ✅ Navigation
     window.nextQuestion = () => {
       if (currentIndex < quizData.length - 1) {
         currentIndex++;
@@ -96,10 +110,13 @@
       }
     };
 
+    // ✅ Submit Quiz with Multiple Attempts + Answers
     window.submitQuiz = async () => {
       let score = 0;
       quizData.forEach((q, i) => {
-        if (answers[i] === q.answer) score++;
+        if (answers[i] && answers[i] === q.answer) {
+          score++;
+        }
       });
 
       const xpEarned = score * 5;
@@ -109,14 +126,15 @@
 
       await updateDoc(userRef, {
         xp: currentXP + xpEarned,
-        [`history.${quizId}`]: {
+        [`history.${quizId}`]: arrayUnion({   // ✅ multiple attempts stored
           score,
           total: quizData.length,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+          answers: answers   // ✅ user ke diye gaye answers bhi save honge
+        })
       });
 
-      alert(`You scored ${score}/${quizData.length} and earned ${xpEarned} XP!`);
+      alert(`✅ You scored ${score}/${quizData.length} and earned ${xpEarned} XP!`);
       location.href = "dashboard.html";
     };
   </script>
