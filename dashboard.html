@@ -8,21 +8,14 @@
 </head>
 <body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen">
 
-  <!-- Page Loader (on page load & back) -->
+  <!-- Page Loader -->
   <div id="pageLoader" class="fixed inset-0 bg-blue-900 flex flex-col items-center justify-center z-50">
     <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-white mb-4"></div>
     <p class="text-lg">Loading dashboard...</p>
   </div>
 
-  <!-- Navigation Loader -->
-  <div id="navLoader" class="hidden fixed inset-0 bg-black bg-opacity-60 flex flex-col items-center justify-center z-50">
-    <div class="animate-spin rounded-full h-14 w-14 border-t-4 border-blue-500 mb-4"></div>
-    <p class="text-lg">Loading...</p>
-  </div>
-
-  <!-- Dashboard Content -->
+  <!-- Top Bar -->
   <div id="mainContent" class="hidden">
-    <!-- Top Bar -->
     <div class="flex justify-between items-center px-6 py-4">
       <div class="flex items-center gap-4">
         <img id="avatar" src="/avatar/default.png" class="w-12 h-12 rounded-full border-2 border-white cursor-pointer" onclick="toggleProfile()"/>
@@ -48,21 +41,21 @@
 
     <!-- Subject Grid -->
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 px-6">
-      <div onclick="navigateTo('quizzes.html','Science')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
+      <div onclick="openSubject('Science')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
         🔬 <h3 class="mt-2 font-semibold">Science</h3>
       </div>
-      <div onclick="navigateTo('quizzes.html','Math')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
+      <div onclick="openSubject('Math')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
         ➕ <h3 class="mt-2 font-semibold">Math</h3>
       </div>
-      <div onclick="navigateTo('quizzes.html','English')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
+      <div onclick="openSubject('English')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
         📘 <h3 class="mt-2 font-semibold">English</h3>
       </div>
-      <div onclick="navigateTo('quizzes.html','Sst')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
+      <div onclick="openSubject('Sst')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
         🌍 <h3 class="mt-2 font-semibold">Sst</h3>
       </div>
 
-      <div onclick="navigateTo('leaderboard.html')" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100 text-center cursor-pointer">🏆 Leaderboard</div>
-      <div onclick="navigateTo('my-history.html')" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100 text-center cursor-pointer">📝 My History</div>
+      <a href="leaderboard.html" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100">🏆 Leaderboard</a>
+      <a href="my-history.html" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100">📝 My History</a>
     </div>
 
     <!-- Profile Popup -->
@@ -72,7 +65,7 @@
       <p><b>XP:</b> <span id="popup-xp">0</span></p>
       <p><b>Level:</b> <span id="popup-level">1</span></p>
       <p><b>Role:</b> <span id="popup-role">student</span></p>
-      <button onclick="navigateTo('profile.html')" class="mt-3 bg-blue-700 text-white px-3 py-1 rounded">Edit Profile</button>
+      <button onclick="window.location.href='profile.html'" class="mt-3 bg-blue-700 text-white px-3 py-1 rounded">Edit Profile</button>
     </div>
   </div>
 
@@ -93,13 +86,6 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth();
     const db = getFirestore(app);
-
-    // ✅ Reset loader jab page wapas aaye (Back button)
-    window.addEventListener("pageshow", () => {
-      document.getElementById("navLoader").classList.add("hidden");
-      document.getElementById("pageLoader").classList.remove("hidden");
-      document.getElementById("mainContent").classList.add("hidden");
-    });
 
     let userData;
 
@@ -124,13 +110,9 @@
       document.getElementById("mainContent").classList.remove("hidden");
     });
 
-    // ✅ Logout with loader
     window.logout = async () => {
-      document.getElementById("navLoader").classList.remove("hidden");
       await signOut(auth);
-      setTimeout(() => {
-        window.location.href = "index.html";
-      }, 800);
+      window.location.href = "index.html";
     }
 
     window.toggleProfile = () => {
@@ -153,15 +135,9 @@
       });
     }
 
-    // ✅ Navigation loader for all links
-    window.navigateTo = (page, subject = null) => {
-      document.getElementById("navLoader").classList.remove("hidden");
-      if (subject) {
-        localStorage.setItem("selected_subject", subject);
-      }
-      setTimeout(() => {
-        window.location.href = page;
-      }, 800); // loader delay
+    window.openSubject = (subject) => {
+      localStorage.setItem("selected_subject", subject);
+      window.location.href = "quizzes.html";
     }
   </script>
 </body>
