@@ -1,4 +1,5 @@
-<!-- dashboard.html - EduTech Student Dashboard --><!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -6,51 +7,76 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen">
-  <!-- Top Bar -->
-  <div class="flex justify-between items-center px-6 py-4">
-    <div class="flex items-center gap-4">
-      <img id="avatar" src="/avatar/default.png" class="w-12 h-12 rounded-full border-2 border-white cursor-pointer" onclick="toggleProfile()"/>
-      <div>
-        <h2 id="username" class="text-xl font-semibold">Welcome, User</h2>
-        <p class="text-sm">XP: <span id="user-xp">0</span></p>
+
+  <!-- Page Loader (on page load) -->
+  <div id="pageLoader" class="fixed inset-0 bg-blue-900 flex flex-col items-center justify-center z-50">
+    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-white mb-4"></div>
+    <p class="text-lg">Loading dashboard...</p>
+  </div>
+
+  <!-- Navigation Loader -->
+  <div id="navLoader" class="hidden fixed inset-0 bg-black bg-opacity-60 flex flex-col items-center justify-center z-50">
+    <div class="animate-spin rounded-full h-14 w-14 border-t-4 border-blue-500 mb-4"></div>
+    <p class="text-lg">Loading...</p>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div id="mainContent" class="hidden">
+    <!-- Top Bar -->
+    <div class="flex justify-between items-center px-6 py-4">
+      <div class="flex items-center gap-4">
+        <img id="avatar" src="/avatar/default.png" class="w-12 h-12 rounded-full border-2 border-white cursor-pointer" onclick="toggleProfile()"/>
+        <div>
+          <h2 id="username" class="text-xl font-semibold">Welcome, User</h2>
+          <p class="text-sm">XP: <span id="user-xp">0</span></p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <button onclick="logout()" class="bg-white text-blue-700 px-3 py-1 rounded">Logout</button>
+        <button onclick="toggleNotifications()" class="relative">
+          🔔
+          <span id="notif-count" class="absolute -top-2 -right-2 text-xs bg-red-600 px-1 rounded-full">0</span>
+        </button>
       </div>
     </div>
-    <div class="flex items-center gap-4">
-      <button onclick="logout()" class="bg-white text-blue-700 px-3 py-1 rounded">Logout</button>
-      <button onclick="toggleNotifications()" class="relative">
-        🔔
-        <span id="notif-count" class="absolute -top-2 -right-2 text-xs bg-red-600 px-1 rounded-full">0</span>
-      </button>
-    </div>
-  </div>  <!-- Notifications -->  <div id="notifications" class="hidden bg-white text-black rounded shadow mx-6 p-4 mb-4">
-    <h3 class="font-bold text-lg mb-2">📢 Announcements</h3>
-    <div id="notif-list" class="space-y-2 text-sm"></div>
-  </div>  <!-- Subject Grid -->  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 px-6">
-    <div onclick="openSubject('Science')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
-      🔬 <h3 class="mt-2 font-semibold">Science</h3>
-    </div>
-    <div onclick="openSubject('Math')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
-      ➕ <h3 class="mt-2 font-semibold">Math</h3>
-    </div>
-    <div onclick="openSubject('English')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
-      📘 <h3 class="mt-2 font-semibold">English</h3>
-    </div>
-    <div onclick="openSubject('Sst')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
-      🌍 <h3 class="mt-2 font-semibold">Sst</h3>
-    </div>
-      <a href="leaderboard.html" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100">🏆 Leaderboard</a>
-     <a href="my-history.html" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100">📝My History</a>
 
-    
+    <!-- Notifications -->
+    <div id="notifications" class="hidden bg-white text-black rounded shadow mx-6 p-4 mb-4">
+      <h3 class="font-bold text-lg mb-2">📢 Announcements</h3>
+      <div id="notif-list" class="space-y-2 text-sm"></div>
+    </div>
 
-  </div>  <!-- Profile Popup -->  <div id="profile-popup" class="hidden absolute top-20 left-6 bg-white text-black p-4 rounded shadow w-64">
-    <h3 class="font-bold mb-2">👤 Profile</h3>
-    <p><b>Name:</b> <span id="popup-name">User</span></p>
-    <p><b>XP:</b> <span id="popup-xp">0</span></p>
-    <p><b>Level:</b> <span id="popup-level">1</span></p>
-    <p><b>Role:</b> <span id="popup-role">student</span></p>
-    <button onclick="window.location.href='profile.html'" class="mt-3 bg-blue-700 text-white px-3 py-1 rounded">Edit Profile</button>
-  </div>  <script type="module">
+    <!-- Subject Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 px-6">
+      <div onclick="navigateTo('quizzes.html','Science')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
+        🔬 <h3 class="mt-2 font-semibold">Science</h3>
+      </div>
+      <div onclick="navigateTo('quizzes.html','Math')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
+        ➕ <h3 class="mt-2 font-semibold">Math</h3>
+      </div>
+      <div onclick="navigateTo('quizzes.html','English')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
+        📘 <h3 class="mt-2 font-semibold">English</h3>
+      </div>
+      <div onclick="navigateTo('quizzes.html','Sst')" class="bg-white text-blue-800 p-6 rounded-xl shadow cursor-pointer hover:scale-105 transform transition-all">
+        🌍 <h3 class="mt-2 font-semibold">Sst</h3>
+      </div>
+
+      <div onclick="navigateTo('leaderboard.html')" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100 text-center cursor-pointer">🏆 Leaderboard</div>
+      <div onclick="navigateTo('my-history.html')" class="bg-white text-blue-900 px-4 py-2 rounded shadow hover:bg-blue-100 text-center cursor-pointer">📝 My History</div>
+    </div>
+
+    <!-- Profile Popup -->
+    <div id="profile-popup" class="hidden absolute top-20 left-6 bg-white text-black p-4 rounded shadow w-64">
+      <h3 class="font-bold mb-2">👤 Profile</h3>
+      <p><b>Name:</b> <span id="popup-name">User</span></p>
+      <p><b>XP:</b> <span id="popup-xp">0</span></p>
+      <p><b>Level:</b> <span id="popup-level">1</span></p>
+      <p><b>Role:</b> <span id="popup-role">student</span></p>
+      <button onclick="navigateTo('profile.html')" class="mt-3 bg-blue-700 text-white px-3 py-1 rounded">Edit Profile</button>
+    </div>
+  </div>
+
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
@@ -85,11 +111,19 @@
       document.getElementById("avatar").src = `/avatar/${userData.avatar || 'default.png'}`;
 
       loadNotifications();
+
+      // ✅ Hide loader & show dashboard
+      document.getElementById("pageLoader").classList.add("hidden");
+      document.getElementById("mainContent").classList.remove("hidden");
     });
 
+    // ✅ Logout with loader
     window.logout = async () => {
+      document.getElementById("navLoader").classList.remove("hidden");
       await signOut(auth);
-      window.location.href = "index.html";
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 800);
     }
 
     window.toggleProfile = () => {
@@ -112,10 +146,16 @@
       });
     }
 
-    window.openSubject = (subject) => {
-      localStorage.setItem("selected_subject", subject);
-      window.location.href = "quizzes.html";
+    // ✅ Navigation loader for all links (subjects, leaderboard, history, profile)
+    window.navigateTo = (page, subject = null) => {
+      document.getElementById("navLoader").classList.remove("hidden");
+      if (subject) {
+        localStorage.setItem("selected_subject", subject);
+      }
+      setTimeout(() => {
+        window.location.href = page;
+      }, 800); // loader delay
     }
-  </script></body>
-          </html>
-    
+  </script>
+</body>
+</html>
