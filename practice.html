@@ -8,9 +8,14 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen p-6">
-  <div class="max-w-3xl mx-auto bg-white text-black p-6 rounded-xl shadow-xl">
+  <div class="max-w-3xl mx-auto bg-white text-black p-6 rounded-xl shadow-xl relative">
     <h1 class="text-2xl font-bold mb-4" id="quiz-title">Loading...</h1>
     
+    <!-- Loading Spinner -->
+    <div id="loading" class="absolute inset-0 bg-white/80 flex justify-center items-center z-50">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
+    </div>
+
     <div id="quiz-box" class="space-y-6"></div>
 
     <div class="flex justify-between mt-4">
@@ -19,6 +24,11 @@
       <button id="submit-btn" onclick="submitQuiz()" class="bg-green-600 text-white px-6 py-2 rounded hidden">Submit Quiz</button>
     </div>
   </div>  
+
+  <!-- Toast for answer saved -->
+  <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded opacity-0 transition-opacity duration-500">
+    Answer saved!
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
@@ -43,24 +53,38 @@
     document.getElementById("quiz-title").textContent = quizId.replace(/_/g, ' ');
 
     const quizBox = document.getElementById("quiz-box");
+    const loadingEl = document.getElementById("loading");
+    const toastEl = document.getElementById("toast");
 
     let quizData = [];
     let userUID = null;
     let currentIndex = 0;
-    window.answers = {};   // ✅ answers global
+    window.answers = {}; // global answers
+
+    function showToast() {
+      toastEl.classList.remove("opacity-0");
+      setTimeout(() => toastEl.classList.add("opacity-0"), 1000);
+    }
 
     // ✅ Auth and Quiz Data Load
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = 'index.html';
       userUID = user.uid;
-      const docSnap = await getDoc(doc(db, "questions", quizId));
-      if (!docSnap.exists()) return alert("Quiz not found");
 
-      quizData = docSnap.data().questions || [];
-      if (quizData.length === 0) {
-        quizBox.innerHTML = "<p class='text-red-500'>No questions found in this quiz.</p>";
-      } else {
-        renderQuestion();   // ✅ show first question
+      try {
+        const docSnap = await getDoc(doc(db, "questions", quizId));
+        if (!docSnap.exists()) throw new Error("Quiz not found");
+        quizData = docSnap.data().questions || [];
+
+        if (quizData.length === 0) {
+          quizBox.innerHTML = "<p class='text-red-500'>No questions found in this quiz.</p>";
+        } else {
+          renderQuestion();
+        }
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        loadingEl.style.display = "none"; // hide spinner
       }
     });
 
@@ -82,10 +106,11 @@
         </div>
       `;
 
-      // ✅ Save selected answer
+      // ✅ Save selected answer automatically
       document.querySelectorAll(`input[name='q${currentIndex}']`).forEach(input => {
         input.addEventListener("change", (e) => {
           answers[currentIndex] = e.target.value;
+          showToast(); // show "Answer saved"
         });
       });
 
@@ -110,13 +135,13 @@
       }
     };
 
-    // ✅ Submit Quiz with Multiple Attempts + Answers
+    // ✅ Submit Quiz with all answers saved
     window.submitQuiz = async () => {
+      loadingEl.style.display = "flex"; // show spinner while submitting
+
       let score = 0;
       quizData.forEach((q, i) => {
-        if (answers[i] && answers[i] === q.answer) {
-          score++;
-        }
+        if (answers[i] && answers[i] === q.answer) score++;
       });
 
       const xpEarned = score * 5;
@@ -124,19 +149,17 @@
       const userSnap = await getDoc(userRef);
       const currentXP = userSnap.data().xp || 0;
 
-     await updateDoc(userRef, {
-  xp: currentXP + xpEarned,
-  [`history.${quizId}`]: arrayUnion({
-    score,
-    total: quizData.length,
-    timestamp: new Date().toISOString(),
-    answers: quizData.map((q, i) => {
-      const selected = document.querySelector(`input[name='q${i}']:checked`);
-      return selected ? selected.value : "Not Answered";
-    })
-  })
-});
+      await updateDoc(userRef, {
+        xp: currentXP + xpEarned,
+        [`history.${quizId}`]: arrayUnion({
+          score,
+          total: quizData.length,
+          timestamp: new Date().toISOString(),
+          answers: quizData.map((q, i) => answers[i] || "Not Answered")
+        })
+      });
 
+      loadingEl.style.display = "none";
       alert(`✅ You scored ${score}/${quizData.length} and earned ${xpEarned} XP!`);
       location.href = "dashboard.html";
     };
