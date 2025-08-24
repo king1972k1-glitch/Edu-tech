@@ -1,41 +1,48 @@
-<!-- profile.html - EduTech User Profile Page --><!DOCTYPE html><html lang="en">
+<!-- profile.html - EduTech User Profile Page -->
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EduTech | Profile</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body 
-  class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen p-6">
-  <div class="max-w-xl mx-auto bg-white text-black p-6 rounded-xl shadow-xl">
-    <h1 class="text-3xl font-bold mb-6 text-center">👤 Edit Profile</h1><div class="flex flex-col items-center">
-  <img id="avatar-preview" src="/avatar/default.png" class="w-24 h-24 rounded-full border mb-4">
-  <select id="avatar-select" class="mb-6 p-2 rounded">
-    <option value="default.png">Default</option>
-    <option value="avatar1.png">Itachi</option>
-    <option value="avatar2.png">Naruto</option>
-    <option value="avatar3.png">Hinata</option>
-    <option value="sanji.png">Sanji</option>
-    <option value="Goku.png">Goku</option>
-    <option value="minato.png">Minato</option>
-    
-  
-  </select>
+<body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen p-6">
 
-  <input id="name-input" class="w-full p-2 rounded border mb-4" type="text" placeholder="Enter your name">
-  <button onclick="saveProfile()" class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800">Save Changes</button>
-</div>
+  <!-- Loading Spinner -->
+  <div id="loading" class="fixed inset-0 bg-white/80 flex justify-center items-center z-50">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-700"></div>
+  </div>
 
-<hr class="my-6">
+  <div id="content" class="max-w-xl mx-auto bg-white text-black p-6 rounded-xl shadow-xl hidden">
+    <h1 class="text-3xl font-bold mb-6 text-center">👤 Edit Profile</h1>
+    <div class="flex flex-col items-center">
+      <img id="avatar-preview" src="/avatar/default.png" class="w-24 h-24 rounded-full border mb-4">
+      <select id="avatar-select" class="mb-6 p-2 rounded">
+        <option value="default.png">Default</option>
+        <option value="avatar1.png">Itachi</option>
+        <option value="avatar2.png">Naruto</option>
+        <option value="avatar3.png">Hinata</option>
+        <option value="sanji.png">Sanji</option>
+        <option value="Goku.png">Goku</option>
+        <option value="minato.png">Minato</option>
+      </select>
 
-<div class="text-center">
-  <h2 class="text-xl font-semibold">🏅 Your Stats</h2>
-  <p><b>XP:</b> <span id="xp-count">0</span></p>
-  <p><b>Level:</b> <span id="level">1</span></p>
-  <p><b>Role:</b> <span id="role">student</span></p>
-</div>
+      <input id="name-input" class="w-full p-2 rounded border mb-4" type="text" placeholder="Enter your name">
+      <button onclick="saveProfile()" class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800">Save Changes</button>
+    </div>
 
-  </div>  <script type="module">
+    <hr class="my-6">
+
+    <div class="text-center">
+      <h2 class="text-xl font-semibold">🏅 Your Stats</h2>
+      <p><b>XP:</b> <span id="xp-count">0</span></p>
+      <p><b>Level:</b> <span id="level">1</span></p>
+      <p><b>Role:</b> <span id="role">student</span></p>
+    </div>
+  </div>
+
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
@@ -60,6 +67,9 @@
     const level = document.getElementById("level");
     const role = document.getElementById("role");
 
+    const loadingEl = document.getElementById("loading");
+    const contentEl = document.getElementById("content");
+
     let userId = null;
 
     avatarSelect.addEventListener("change", () => {
@@ -69,15 +79,25 @@
     onAuthStateChanged(auth, async (user) => {
       if (!user) return location.href = "index.html";
       userId = user.uid;
-      const snap = await getDoc(doc(db, "users", userId));
-      const data = snap.data();
 
-      avatarPreview.src = `/avatar/${data.avatar || "default.png"}`;
-      avatarSelect.value = data.avatar || "default.png";
-      nameInput.value = data.name || "";
-      xpCount.textContent = data.xp || 0;
-      level.textContent = Math.floor((data.xp || 0) / 100) + 1;
-      role.textContent = data.role || "student";
+      try {
+        const snap = await getDoc(doc(db, "users", userId));
+        const data = snap.data();
+
+        avatarPreview.src = `/avatar/${data.avatar || "default.png"}`;
+        avatarSelect.value = data.avatar || "default.png";
+        nameInput.value = data.name || "";
+        xpCount.textContent = data.xp || 0;
+        level.textContent = Math.floor((data.xp || 0) / 100) + 1;
+        role.textContent = data.role || "student";
+
+      } catch (err) {
+        alert("Error loading profile: " + err.message);
+      } finally {
+        // Hide spinner and show content
+        loadingEl.style.display = "none";
+        contentEl.classList.remove("hidden");
+      }
     });
 
     window.saveProfile = async () => {
@@ -88,5 +108,6 @@
       await updateDoc(doc(db, "users", userId), { name, avatar });
       alert("Profile updated!");
     }
-  </script></body>
+  </script>
+</body>
 </html>
