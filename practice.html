@@ -39,44 +39,52 @@
     const submitBtn = document.getElementById("submit-btn");
 
     let quizData = [];
-    let userUID = null;
-    let userAnswers = [];
+let userUID = null;
+let currentIndex = 0;   // Track current question
+let answers = {};       // Store user answers
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) return location.href = 'index.html';
-      userUID = user.uid;
-      const docSnap = await getDoc(doc(db, "questions", quizId));
-      if (!docSnap.exists()) return alert("Quiz not found");
-      quizData = docSnap.data().questions;
-      renderQuiz();
-    });
+function renderQuestion() {
+  const q = quizData[currentIndex];
+  const options = q.options.map(opt => `
+    <label class='block'>
+      <input type='radio' name='q${currentIndex}' value='${opt}'
+        ${answers[currentIndex] === opt ? "checked" : ""} 
+        onchange="answers[${currentIndex}]='${opt}'"
+      > ${opt}
+    </label>
+  `).join('');
 
-    function renderQuiz() {
-      container.innerHTML = "";
-      quizData.forEach((q, i) => {
-        const options = q.options.map(opt => `
-          <label class='block'>
-            <input type='radio' name='q${i}' value='${opt}' class='mr-2'> ${opt}
-          </label>
-        `).join('');
+  document.getElementById("quiz-box").innerHTML = `
+    <div class='bg-gray-100 p-4 rounded'>
+      <h3 class='font-semibold mb-2'>${currentIndex + 1}. ${q.q}</h3>
+      ${options}
+    </div>
+  `;
 
-        container.innerHTML += `
-          <div class='bg-gray-100 p-4 rounded'>
-            <h3 class='font-semibold mb-2'>${i + 1}. ${q.q}</h3>
-            ${options}
-          </div>
-        `;
-      });
-    }
-    window.submitQuiz = async () => {
+  // Button visibility
+  document.getElementById("prev-btn").classList.toggle("hidden", currentIndex === 0);
+  document.getElementById("next-btn").classList.toggle("hidden", currentIndex === quizData.length - 1);
+  document.getElementById("submit-btn").classList.toggle("hidden", currentIndex !== quizData.length - 1);
+}
+
+function nextQuestion() {
+  if (currentIndex < quizData.length - 1) {
+    currentIndex++;
+    renderQuestion();
+  }
+}
+
+function prevQuestion() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    renderQuestion();
+  }
+}
+
+window.submitQuiz = async () => {
   let score = 0;
-  const userAnswers = [];
-
   quizData.forEach((q, i) => {
-    const selected = document.querySelector(`input[name='q${i}']:checked`);
-    const answer = selected ? selected.value : null;
-    userAnswers.push(answer);
-    if (answer === q.answer) score++;
+    if (answers[i] === q.answer) score++;
   });
 
   const xpEarned = score * 5;
@@ -89,9 +97,7 @@
     [`history.${quizId}`]: {
       score,
       total: quizData.length,
-      timestamp: new Date().toISOString(),
-      questions: quizData,
-      answers: userAnswers
+      timestamp: new Date().toISOString()
     }
   });
 
