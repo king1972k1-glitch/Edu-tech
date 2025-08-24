@@ -1,4 +1,6 @@
-<!-- practice.html - Quiz player page for EduTech --><!DOCTYPE html><html lang="en">
+<!-- practice.html - Quiz player page for EduTech -->
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,19 +9,20 @@
 </head>
 <body class="bg-gradient-to-br from-blue-900 to-blue-500 text-white min-h-screen p-6">
   <div class="max-w-3xl mx-auto bg-white text-black p-6 rounded-xl shadow-xl">
-    <h1 class="text-2xl font-bold mb-4" id="quiz-title">Loading...</h1><div id="quiz-container" class="space-y-6"></div>
+    <h1 class="text-2xl font-bold mb-4" id="quiz-title">Loading...</h1>
+    
+    <div id="quiz-box" class="space-y-6"></div>
 
-<div id="quiz-box" class="space-y-6"></div>
+    <div class="flex justify-between mt-4">
+      <button id="prev-btn" onclick="prevQuestion()" class="bg-gray-400 text-white px-4 py-2 rounded hidden">Previous</button>
+      <button id="next-btn" onclick="nextQuestion()" class="bg-blue-700 text-white px-6 py-2 rounded">Next</button>
+      <button id="submit-btn" onclick="submitQuiz()" class="bg-green-600 text-white px-6 py-2 rounded hidden">Submit Quiz</button>
+    </div>
+  </div>  
 
-<div class="flex justify-between mt-4">
-  <button id="prev-btn" onclick="prevQuestion()" class="bg-gray-400 text-white px-4 py-2 rounded hidden">Previous</button>
-  <button id="next-btn" onclick="nextQuestion()" class="bg-blue-700 text-white px-6 py-2 rounded">Next</button>
-  <button id="submit-btn" onclick="submitQuiz()" class="bg-green-600 text-white px-6 py-2 rounded hidden">Submit Quiz</button>
-</div>
-
-  </div>  <script type="module">
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -39,74 +42,83 @@
     if (!quizId) location.href = "dashboard.html";
     document.getElementById("quiz-title").textContent = quizId.replace(/_/g, ' ');
 
-    const container = document.getElementById("quiz-container");
-    const submitBtn = document.getElementById("submit-btn");
+    const quizBox = document.getElementById("quiz-box");
 
     let quizData = [];
-let userUID = null;
-let currentIndex = 0;   // Track current question
-let answers = {};       // Store user answers
+    let userUID = null;
+    let currentIndex = 0;
+    let answers = {};
 
-function renderQuestion() {
-  const q = quizData[currentIndex];
-  const options = q.options.map(opt => `
-    <label class='block'>
-      <input type='radio' name='q${currentIndex}' value='${opt}'
-        ${answers[currentIndex] === opt ? "checked" : ""} 
-        onchange="answers[${currentIndex}]='${opt}'"
-      > ${opt}
-    </label>
-  `).join('');
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) return location.href = 'index.html';
+      userUID = user.uid;
+      const docSnap = await getDoc(doc(db, "questions", quizId));
+      if (!docSnap.exists()) return alert("Quiz not found");
+      quizData = docSnap.data().questions;
+      renderQuestion();   // ✅ Pehla question show karo
+    });
 
-  document.getElementById("quiz-box").innerHTML = `
-    <div class='bg-gray-100 p-4 rounded'>
-      <h3 class='font-semibold mb-2'>${currentIndex + 1}. ${q.q}</h3>
-      ${options}
-    </div>
-  `;
+    function renderQuestion() {
+      const q = quizData[currentIndex];
+      const options = q.options.map(opt => `
+        <label class='block'>
+          <input type='radio' name='q${currentIndex}' value='${opt}'
+            ${answers[currentIndex] === opt ? "checked" : ""} 
+            onchange="answers[${currentIndex}]='${opt}'"
+          > ${opt}
+        </label>
+      `).join('');
 
-  // Button visibility
-  document.getElementById("prev-btn").classList.toggle("hidden", currentIndex === 0);
-  document.getElementById("next-btn").classList.toggle("hidden", currentIndex === quizData.length - 1);
-  document.getElementById("submit-btn").classList.toggle("hidden", currentIndex !== quizData.length - 1);
-}
+      quizBox.innerHTML = `
+        <div class='bg-gray-100 p-4 rounded'>
+          <h3 class='font-semibold mb-2'>${currentIndex + 1}. ${q.q}</h3>
+          ${options}
+        </div>
+      `;
 
-function nextQuestion() {
-  if (currentIndex < quizData.length - 1) {
-    currentIndex++;
-    renderQuestion();
-  }
-}
-
-function prevQuestion() {
-  if (currentIndex > 0) {
-    currentIndex--;
-    renderQuestion();
-  }
-}
-
-window.submitQuiz = async () => {
-  let score = 0;
-  quizData.forEach((q, i) => {
-    if (answers[i] === q.answer) score++;
-  });
-
-  const xpEarned = score * 5;
-  const userRef = doc(db, "users", userUID);
-  const userSnap = await getDoc(userRef);
-  const currentXP = userSnap.data().xp || 0;
-
-  await updateDoc(userRef, {
-    xp: currentXP + xpEarned,
-    [`history.${quizId}`]: {
-      score,
-      total: quizData.length,
-      timestamp: new Date().toISOString()
+      // Button visibility
+      document.getElementById("prev-btn").classList.toggle("hidden", currentIndex === 0);
+      document.getElementById("next-btn").classList.toggle("hidden", currentIndex === quizData.length - 1);
+      document.getElementById("submit-btn").classList.toggle("hidden", currentIndex !== quizData.length - 1);
     }
-  });
 
-  alert(`You scored ${score}/${quizData.length} and earned ${xpEarned} XP!`);
-  location.href = "dashboard.html";
-};
-  </script></body>
+    window.nextQuestion = () => {
+      if (currentIndex < quizData.length - 1) {
+        currentIndex++;
+        renderQuestion();
+      }
+    };
+
+    window.prevQuestion = () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderQuestion();
+      }
+    };
+
+    window.submitQuiz = async () => {
+      let score = 0;
+      quizData.forEach((q, i) => {
+        if (answers[i] === q.answer) score++;
+      });
+
+      const xpEarned = score * 5;
+      const userRef = doc(db, "users", userUID);
+      const userSnap = await getDoc(userRef);
+      const currentXP = userSnap.data().xp || 0;
+
+      await updateDoc(userRef, {
+        xp: currentXP + xpEarned,
+        [`history.${quizId}`]: {
+          score,
+          total: quizData.length,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      alert(`You scored ${score}/${quizData.length} and earned ${xpEarned} XP!`);
+      location.href = "dashboard.html";
+    };
+  </script>
+</body>
 </html>
